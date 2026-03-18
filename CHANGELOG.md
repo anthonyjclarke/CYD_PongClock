@@ -7,15 +7,11 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ## [To do]
 
-### Phase 1a — Font fixes
-- `n` glyph in `mytinyfont` renders with misaligned stem — affects Word Clock numbers
-  ("one", "nine", "nineteen", "twenty nine" etc.)
+### Font fixes
 - Audit `mybigfont` 10×14 digits — check `1` and `7` proportions visually on device
 
-### Phase 3 — 4-panel matrix (48×32)
-- Extend `LED_HEIGHT` 16 → 32; sprite becomes 288×192; `LED_Y_OFFSET` 72 → 24
-- Enables 4 usable 7-LED-tall bands: time / date / temperature / status
-- All modes need geometry audit; Slide already 2-row (time + date)
+### Next to do
+- WebUI
 
 ### Phase 4 — Timer mode
 - Countdown timer as 5th clock mode (`NUM_MODES` → 5)
@@ -34,6 +30,10 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 ## [0.3.0] 2026-03-18
 
 ### Added
+- Animated boot splash: typewriter reveal of "PONG / CLOCK / v0.3" into the LED matrix
+  sprite, 900 ms hold, then CRT-collapse exit (rows fold inward top+bottom simultaneously,
+  16 passes × ~35 ms ≈ 560 ms); total sequence ≈ 2.3 s; version string driven by
+  `FW_VERSION` in `config.h` — update each release
 - Phase 3: 48×32 matrix (doubled height) — `LED_HEIGHT` 16→32, `LED_Y_OFFSET` 72→24,
   sprite 288×96→288×192; all four modes fully re-centred in the expanded canvas
 - Pong: full 32-row play field — ball bounces wall-to-wall; `BAT_HEIGHT=8` constant

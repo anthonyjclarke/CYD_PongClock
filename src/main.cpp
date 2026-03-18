@@ -32,6 +32,53 @@ void initDisplay() {
            tft.width(), tft.height(), SCREEN_ROTATION);
 }
 
+// ── Startup splash screen ─────────────────────────────────────────────────────
+// Typewriter reveal → 900 ms hold → CRT-collapse exit. Total ≈ 2.3 s.
+//
+// Layout in 32-row LED matrix — 3-row margins top and bottom:
+//   "PONG"  myfont 5×7    row  3  x=12
+//   "CLOCK" myfont 5×7    row 13  x=9
+//   "v0.3"  tinyfont 3×5  row 24  x=16
+static void showSplash() {
+  cls();
+
+  // ── Typewriter: PONG ────────────────────────────────────────────────────────
+  // "PONG" span = 3×6+5 = 23px → x = (48-23)/2 = 12
+  const byte xP[4] = {12, 18, 24, 30};
+  const char sP[4] = {'P','O','N','G'};
+  for (byte i = 0; i < 4; i++) { putChar(xP[i], 3, sP[i]); pushMatrix(); delay(60); }
+
+  // ── Typewriter: CLOCK ───────────────────────────────────────────────────────
+  // "CLOCK" span = 4×6+5 = 29px → x = (48-29)/2 = 9
+  const byte xC[5] = {9, 15, 21, 27, 33};
+  const char sC[5] = {'C','L','O','C','K'};
+  for (byte i = 0; i < 5; i++) { putChar(xC[i], 13, sC[i]); pushMatrix(); delay(60); }
+
+  // ── Typewriter: version ─────────────────────────────────────────────────────
+  // "v" FW_VERSION e.g. "v0.3" — span = 3×4+3 = 15px → x = (48-15)/2 = 16
+  const char* ver = "v" FW_VERSION;
+  byte vlen = (byte)strlen(ver);
+  byte vx   = (byte)((LED_WIDTH - ((vlen - 1) * 4 + 3)) / 2);
+  delay(100);
+  for (byte i = 0; i < vlen; i++) { putTinyChar(vx + i * 4, 24, ver[i]); pushMatrix(); delay(60); }
+
+  // ── Hold ────────────────────────────────────────────────────────────────────
+  delay(900);
+
+  // ── CRT-collapse: rows fold inward from top and bottom simultaneously ────────
+  // 16 passes × (SPI ~20ms + 15ms delay) ≈ 560ms
+  for (byte i = 0; i < LED_HEIGHT / 2; i++) {
+    for (byte x = 0; x < LED_WIDTH; x++) {
+      plot(x, i,                  false);
+      plot(x, LED_HEIGHT - 1 - i, false);
+    }
+    pushMatrix();
+    delay(15);
+  }
+
+  cls(); pushMatrix();  // clean slate for WiFi status
+}
+
 // ── Status line on screen (below matrix, for init messages) ───────────────────
 static void showStatus(const char* msg) {
   tft.setTextColor(tft.color565(180, 100, 0), tft.color565(5, 2, 0));
@@ -85,6 +132,7 @@ void setup() {
   DBG_INFO("=== PongClock CYD starting ===");
 
   initDisplay();
+  showSplash();
   initTouch();
   initWiFi();
   initTime();

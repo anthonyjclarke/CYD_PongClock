@@ -1,6 +1,6 @@
 # PongClock CYD
 
-A port of Nick Hall's classic **Pong Clock** to the **ESP32-2432S028R (Cheap Yellow Display)**. The original drove two Sure Electronics 2416 LED panels (48×16 combined). This version faithfully emulates that matrix on the ILI9341 320×240 TFT with a retro amber-LED aesthetic.
+A port of Nick Hall's classic **Pong Clock** to the **ESP32-2432S028R (Cheap Yellow Display)**. The original drove two Sure Electronics 2416 LED panels (48×16 combined). This version emulates a 48×32 virtual LED matrix (two stacked panels) on the ILI9341 320×240 TFT with a retro amber-LED aesthetic.
 
 Original project: http://123led.wordpress.com/
 
@@ -8,22 +8,23 @@ Original project: http://123led.wordpress.com/
 
 ## Features
 
-- NTP time sync via WiFi (ezTime — timezone configured in `config.h`)
+- NTP time sync via WiFi (ezTime — timezone + POSIX DST fallback configured in `config.h`)
 - WiFiManager captive portal for first-run credential entry
-- Four clock display modes with touch-to-switch
-- Long-press anywhere for brightness cycle (4 levels)
-- Retro amber LED look — 6×6 rounded pixel per virtual LED, 48×16 matrix
+- Animated splash screen on boot (typewriter reveal + CRT-collapse exit, ≈2.3 s)
+- Four clock display modes with touch-to-switch; date always on screen (never hidden)
+- Long-press anywhere for brightness cycle (4 levels); optional LDR auto-brightness
+- Retro amber LED look — 6×6 rounded pixel per virtual LED, 48×32 matrix
 
 ---
 
 ## Clock Modes
 
-| # | Mode       | Description                                                    |
-|:--|:-----------|:---------------------------------------------------------------|
-| 0 | **Slide**  | Each digit slides up as time changes — HH:MM:SS                |
-| 1 | **Pong**   | AI pong game — score on each side equals hours / minutes       |
-| 2 | **Digits** | Large 7-segment style digits — HH:MM with flashing colon       |
-| 3 | **Word**   | Time expressed in words, two lines (e.g. "TWENTY PAST / FIVE") |
+| # | Mode       | Description                                                              |
+|:--|:-----------|:-------------------------------------------------------------------------|
+| 0 | **Slide**  | Each digit slides up as time changes — HH:MM:SS; date row below          |
+| 1 | **Pong**   | AI pong game — score equals hours / minutes; date permanently at bottom  |
+| 2 | **Digits** | Large 7-segment style digits — HH:MM with flashing colon                 |
+| 3 | **Word**   | Time in words + date (e.g. "TWENTY PAST / FIVE / WED 18 MAR")           |
 
 Clock starts in **Slide** mode on every boot.
 
@@ -173,10 +174,11 @@ Typical boot sequence:
 ```
 [INFO] === PongClock CYD starting ===
 [INFO] Display initialised 320x240 rotation=1
+[INFO] Display colours initialised, sprite 288x192 depth=8 heap=198232
 [INFO] Touch initialised (VSPI CLK=25 MISO=39 MOSI=32 CS=33)
 [INFO] WiFi connected: 192.168.1.xx
 [INFO] Time synced: 16:29:42 17-Mar-2026  status=2  tz=AEDT offset=+1100
-[INFO] Free heap: 234xxx bytes
+[INFO] Free heap: 198xxx bytes
 [INFO] Slide mode entry: 16:29:42  NTP status=2
 [INFO] [Slide] 16:29:43
 [INFO] Touch tap: raw x=2847 y=1203 z=512  (mid=2000 → NEXT mode)
@@ -184,10 +186,12 @@ Typical boot sequence:
 
 NTP `status=2` = synced. `status=0` = not set (offline).
 
+If the Olson timezone lookup fails (timezoneapi.io HTTP call fails immediately after WiFi connect), a `[WARN]` is logged and the POSIX fallback is applied automatically — time will still be correct.
+
 ---
 
 ## Credits
 
 - Original Pong Clock by **Nick Hall** — http://123led.wordpress.com/
-- Modifications by **Brett Oliver** (v7.x timer/temp additions)
+- Modifications by **Brett Oliver** (v7.x timer/temp additions) - https://www.brettoliver.org.uk/Pong_Clock/Pong_Clock.htm
 - CYD port using [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) by Bodmer

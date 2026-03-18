@@ -1,6 +1,9 @@
 #pragma once
 // config.h — PongClock CYD user-tuneable constants
 
+// ── Firmware version ──────────────────────────────────────────────────────────
+#define FW_VERSION          "0.3"       // shown on splash screen — update with each release
+
 // ── Display ───────────────────────────────────────────────────────────────────
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)
 #define BRIGHTNESS_DEFAULT  180         // 0–255 backlight PWM
