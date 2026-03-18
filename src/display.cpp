@@ -15,15 +15,22 @@ void initColours() {
   colourOn  = tft.color565(COLOUR_LED_ON_R,  COLOUR_LED_ON_G,  COLOUR_LED_ON_B);
   colourOff = tft.color565(COLOUR_LED_OFF_R, COLOUR_LED_OFF_G, COLOUR_LED_OFF_B);
 
-  // Create the sprite for the matrix area: LED_WIDTH*PIXEL_SIZE × LED_HEIGHT*PIXEL_SIZE
-  matrixSprite.createSprite(LED_WIDTH * PIXEL_SIZE, LED_HEIGHT * PIXEL_SIZE);
+  // 16-bit sprite at 32 rows needs 288×192×2 = 110KB — too large for ESP32 without PSRAM.
+  // 8-bit (RGB332) halves that to 55KB, matching the old 16-row footprint, and is pushed
+  // to the 16-bit TFT by TFT_eSPI with automatic colour expansion.
+  matrixSprite.setColorDepth(8);
+  void* buf = matrixSprite.createSprite(LED_WIDTH * PIXEL_SIZE, LED_HEIGHT * PIXEL_SIZE);
+  if (!buf) {
+    DBG_ERROR("Sprite alloc FAILED — heap %d bytes, max block %d bytes",
+              ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+  }
   matrixSprite.fillSprite(colourOff);
 
   // Fill the screen background (border around the matrix) with a slightly darker shade
   tft.fillScreen(tft.color565(5, 2, 0));
 
-  DBG_INFO("Display colours initialised, sprite %dx%d",
-           LED_WIDTH * PIXEL_SIZE, LED_HEIGHT * PIXEL_SIZE);
+  DBG_INFO("Display colours initialised, sprite %dx%d depth=8 heap=%d",
+           LED_WIDTH * PIXEL_SIZE, LED_HEIGHT * PIXEL_SIZE, ESP.getFreeHeap());
 }
 
 // Plot a single virtual LED into the sprite.
