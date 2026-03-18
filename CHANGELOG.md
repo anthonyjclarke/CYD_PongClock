@@ -31,6 +31,30 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Add Webui to adjust all setting, Timezone, Wifi, Debug etc
 - 
 
+## [0.3.0] 2026-03-18
+
+### Added
+- Phase 3: 48×32 matrix (doubled height) — `LED_HEIGHT` 16→32, `LED_Y_OFFSET` 72→24,
+  sprite 288×96→288×192; all four modes fully re-centred in the expanded canvas
+- Pong: full 32-row play field — ball bounces wall-to-wall; `BAT_HEIGHT=8` constant
+  (config.h); bat clamp, AI midpoint, endpoint prediction, and collision logic all
+  derived from `LED_HEIGHT`/`BAT_HEIGHT` so they stay correct if height changes again
+- Pong: date permanently displayed at bottom of field (rows 27-31, "WED 18 MAR") redrawn
+  every frame using the same logic as the score — ball cannot permanently erase it
+- Word Clock: third line added showing date ("WED 18 MAR") at Y=21; three lines centred
+  as a block (6-row margins top and bottom); periodic full-screen date interruption removed
+- `display_date()` centred in 32-row matrix (y1=8, y2=16); previously sat in top half only
+
+### Changed
+- Slide mode: time row Y=0→9, date row Y=9→18; combined block perfectly centred
+  (9-row margins top and bottom) in the 32-row matrix
+- Digits mode: big font Y=1→9, colon dots rows 4,5,10,11 → 12,13,18,19; centred
+- Word Clock: top phrase Y=2→6, bottom phrase Y=9→13
+- `drawDateRow()` now takes a `byte y` parameter (was hardcoded to row 9)
+- `pong_setup()` intro text centred at Y=13; separator line now spans all 32 rows
+
+---
+
 ## [0.2.0] 2026-03-18
 
 ### Fixed

@@ -173,10 +173,9 @@ void putBigChar(byte x, byte y, char c) {
 }
 
 // ── drawDateRow ───────────────────────────────────────────────────────────────
-// Renders date as e.g. "WED 18 MAR" using tinyfont at row 9 (rows 9-13).
-// Only writes to LED rows 9-13 — safe to call any time during Slide mode without
-// disturbing the time digits on rows 0-6.
-static void drawDateRow() {
+// Renders date as e.g. "WED 18 MAR" using tinyfont at the given LED row y (rows y to y+4).
+// Caller chooses y to suit the current mode layout.
+static void drawDateRow(byte y) {
   static const char *dayAbbr[7]  = {"SUN","MON","TUE","WED","THU","FRI","SAT"};
   static const char *monAbbr[12] = {"JAN","FEB","MAR","APR","MAY","JUN",
                                      "JUL","AUG","SEP","OCT","NOV","DEC"};
@@ -199,7 +198,7 @@ static void drawDateRow() {
 
   // Centre in 48px: 10 chars × 4px spacing → span = 9×4+3 = 39px, x_start = (48-39)/2 = 4
   for (byte i = 0; i < 10; i++) {
-    putTinyChar(4 + i * 4, 9, str[i]);
+    putTinyChar(4 + i * 4, y, str[i]);
   }
 }
 
@@ -308,6 +307,11 @@ void levelbar(byte xpos, byte ypos, byte xbar, byte ybar) {
 
 // ── display_date ─────────────────────────────────────────────────────────────
 void display_date() {
+  // Centre two 5×7 rows (span = 7+1+7 = 15 rows) vertically in the matrix.
+  // y1 = top row, y2 = bottom row, each 8 LED rows apart.
+  const byte y1 = (LED_HEIGHT - 16) / 2;  // = 8 for LED_HEIGHT=32
+  const byte y2 = y1 + 8;                  // = 16
+
   cls(); pushMatrix();
 
   const char *days_full[7] = {"Sunday","Monday","Tuesday","Wed","Thursday","Friday","Saturday"};
@@ -319,19 +323,19 @@ void display_date() {
   byte date  = rtc[4];
   byte month = rtc[5] - 1;
 
-  flashing_cursor(0, 0, 5, 7, 1);
+  flashing_cursor(0, y1, 5, 7, 1);
 
   byte i = 0;
   while (days_full[dow][i]) {
-    flashing_cursor(i * 6, 0, 5, 7, 0);
-    putChar(i * 6, 0, days_full[dow][i]);
+    flashing_cursor(i * 6, y1, 5, 7, 0);
+    putChar(i * 6, y1, days_full[dow][i]);
     pushMatrix();
     i++;
   }
-  if (i * 6 < 48) flashing_cursor(i * 6, 0, 5, 7, 1);
+  if (i * 6 < 48) flashing_cursor(i * 6, y1, 5, 7, 1);
   else delay(300);
 
-  flashing_cursor(0, 8, 5, 7, 0);
+  flashing_cursor(0, y2, 5, 7, 0);
 
   char buf[5];
   itoa(date, buf, 10);
@@ -341,30 +345,30 @@ void display_date() {
   else if (date == 2 || date == 22)          s = 1;
   else if (date == 3 || date == 23)          s = 2;
 
-  putChar(0, 8, buf[0]);
+  putChar(0, y2, buf[0]);
   byte sx = 6;
-  if (date > 9) { sx = 12; flashing_cursor(6, 8, 5, 7, 0); putChar(6, 8, buf[1]); pushMatrix(); }
-  flashing_cursor(sx, 8, 5, 7, 0);
-  putChar(sx, 8, suffix[s][0]); pushMatrix();
-  flashing_cursor(sx + 6, 8, 5, 7, 0);
-  putChar(sx + 6, 8, suffix[s][1]); pushMatrix();
-  flashing_cursor(sx + 12, 8, 5, 7, 1);
+  if (date > 9) { sx = 12; flashing_cursor(6, y2, 5, 7, 0); putChar(6, y2, buf[1]); pushMatrix(); }
+  flashing_cursor(sx, y2, 5, 7, 0);
+  putChar(sx, y2, suffix[s][0]); pushMatrix();
+  flashing_cursor(sx + 6, y2, 5, 7, 0);
+  putChar(sx + 6, y2, suffix[s][1]); pushMatrix();
+  flashing_cursor(sx + 12, y2, 5, 7, 1);
 
   cls();
-  putChar(0, 0, buf[0]);
-  putChar(6, 0, date > 9 ? buf[1] : ' ');
-  putChar(sx, 0, suffix[s][0]);
-  putChar(sx + 6, 0, suffix[s][1]);
-  flashing_cursor(sx + 12, 0, 5, 7, 0);
+  putChar(0, y1, buf[0]);
+  putChar(6, y1, date > 9 ? buf[1] : ' ');
+  putChar(sx, y1, suffix[s][0]);
+  putChar(sx + 6, y1, suffix[s][1]);
+  flashing_cursor(sx + 12, y1, 5, 7, 0);
 
   i = 0;
   while (months[month][i]) {
-    flashing_cursor(i * 6, 8, 5, 7, 0);
-    putChar(i * 6, 8, months[month][i]);
+    flashing_cursor(i * 6, y2, 5, 7, 0);
+    putChar(i * 6, y2, months[month][i]);
     pushMatrix();
     i++;
   }
-  if (i * 6 < 48) flashing_cursor(i * 6, 8, 5, 7, 2);
+  if (i * 6 < 48) flashing_cursor(i * 6, y2, 5, 7, 2);
   else delay(1000);
   delay(3000);
 }
@@ -406,17 +410,26 @@ void slide() {
     digits_old[5] = hours  / 10;
   }
 
+  // Slide layout (32-row matrix):
+  //   Rows  0- 8  — top margin (9 rows)
+  //   Rows  9-15  — time digits  (myfont 5×7)
+  //   Rows 16-17  — gap (2 rows)
+  //   Rows 18-22  — date         (mytinyfont 3×5)
+  //   Rows 23-31  — bottom margin (9 rows)
+  const byte TIME_Y = 9;
+  const byte DATE_Y = 18;
+
   cls();
   // Draw current time immediately so display is populated from the first frame
   for (byte i = 0; i < 6; i++) {
     char ch[2];
     itoa(digits_old[i], ch, 10);
     if (ampm && i == 5 && digits_old[5] == 0) ch[0] = ' ';
-    putChar(xpos[i], 0, ch[0]);
+    putChar(xpos[i], TIME_Y, ch[0]);
   }
-  putChar(12, 0, ':');
-  putChar(30, 0, ':');
-  drawDateRow();
+  putChar(12, TIME_Y, ':');
+  putChar(30, TIME_Y, ':');
+  drawDateRow(DATE_Y);
   pushMatrix();
 
   byte old_secs = rtc[0];
@@ -472,17 +485,17 @@ void slide() {
       }
 
       for (byte seq = 0; seq <= 8; seq++) {
-        slideanim(xpos[i], 0, seq, old_ch[0], new_ch[0]);
+        slideanim(xpos[i], TIME_Y, seq, old_ch[0], new_ch[0]);
         // Redraw colons each frame so they aren't overwritten by adjacent digit
-        putChar(12, 0, ':');
-        putChar(30, 0, ':');
+        putChar(12, TIME_Y, ':');
+        putChar(30, TIME_Y, ':');
         pushMatrix();
         delay(SLIDE_DELAY);
       }
     }
 
     // Refresh date row every second — handles midnight rollover and restores after any cls()
-    drawDateRow();
+    drawDateRow(DATE_Y);
     pushMatrix();
 
     for (byte i = 0; i < 6; i++) digits_old[i] = digits_new[i];
@@ -497,24 +510,27 @@ void slide() {
 void pong_setup() {
   cls(); pushMatrix();
 
+  // Centre intro text (tinyfont 5 rows) in the 32-row field
+  const byte INTRO_Y = (LED_HEIGHT - 5) / 2;  // = 13
+
   byte i = 0;
   const char intro1[] = "Ready";
   while (intro1[i]) {
     delay(25);
-    putTinyChar((i * 4) + 12, 4, intro1[i]);
+    putTinyChar((i * 4) + 12, INTRO_Y, intro1[i]);
     pushMatrix();
     i++;
   }
   for (byte f = 0; f < 2; f++) {
-    putTinyChar(34, 4, '?'); pushMatrix(); delay(200);
-    putTinyChar(34, 4, ' '); pushMatrix(); delay(400);
+    putTinyChar(34, INTRO_Y, '?'); pushMatrix(); delay(200);
+    putTinyChar(34, INTRO_Y, ' '); pushMatrix(); delay(400);
   }
 
   cls();
   i = 0;
   const char intro2[] = "Play Pong!";
   while (intro2[i]) {
-    putTinyChar((i * 4) + 6, 4, intro2[i]);
+    putTinyChar((i * 4) + 6, INTRO_Y, intro2[i]);
     pushMatrix();
     i++;
   }
@@ -523,7 +539,7 @@ void pong_setup() {
 
   get_time();
   byte offset = random(0, 2);
-  for (byte j = 0; j < 16; j++) {
+  for (byte j = 0; j < LED_HEIGHT; j++) {
     if (j % 2 == 0) { plot(24, j + offset, true); pushMatrix(); delay(30); }
   }
   delay(120);
@@ -532,22 +548,35 @@ void pong_setup() {
 byte pong_get_ball_endpoint(float bx, float by, float vx, float vy) {
   while (bx > BAT1_X && bx < BAT2_X) {
     bx += vx; by += vy;
-    if (by <= 0)  { vy = -vy; by = 0; }
-    if (by >= 15) { vy = -vy; by = 15; }
+    if (by <= 0)                    { vy = -vy; by = 0; }
+    if (by >= (LED_HEIGHT - 1))     { vy = -vy; by = LED_HEIGHT - 1; }
   }
   return (byte)by;
 }
 
 void pong() {
+  // Pong layout (32-row matrix):
+  //   Score  (tinyfont 5 rows) at Y=0  — rows  0-4,  redrawn every frame
+  //   Field                             — rows  0-31, ball bounces wall-to-wall
+  //   Date   (tinyfont 5 rows) at Y=27 — rows 27-31, redrawn every frame
+  //   Score and date are drawn AFTER ball each frame so ball never permanently erases them.
+  const byte SCORE_Y   = 0;
+  const byte DATE_Y    = LED_HEIGHT - 5;           // 27
+  const byte BAT_MAX_Y = LED_HEIGHT - BAT_HEIGHT;  // 24 — highest bat top row
+  const int  AI_MID    = LED_HEIGHT / 2;           // 16 — AI miss threshold
+
   float bx, by, vx, vy;
   byte  ex = 10, ey = 10;
-  int   bat1_y = 5, bat2_y = 5;
-  int   bat1_t = 5, bat2_t = 5;
+  int   bat1_y = (LED_HEIGHT - BAT_HEIGHT) / 2;   // start centred = 12
+  int   bat2_y = (LED_HEIGHT - BAT_HEIGHT) / 2;
+  int   bat1_t = bat1_y, bat2_t = bat2_y;
   byte  bat1_upd = 1, bat2_upd = 1;
   byte  bat1miss = 0, bat2miss = 0;
   byte  restart = 1;
   // Saved score chars — redrawn every frame so the ball never wipes the score
   char  sc_h0 = '0', sc_h1 = '0', sc_m0 = '0', sc_m1 = '0';
+  // Saved date string — built on restart, redrawn every frame same as score
+  char  sc_date[11] = "          ";
 
   pong_setup();
 
@@ -561,7 +590,6 @@ void pong() {
     }
 
     if (restart) {
-      if (check_show_date()) pong_setup();
       plot(ex, ey, false);
 
       get_time();
@@ -576,14 +604,28 @@ void pong() {
       itoa(mins, buf, 10);
       if (mins < 10) { buf[1] = buf[0]; buf[0] = '0'; }
       sc_m0 = buf[0]; sc_m1 = buf[1];
-      putTinyChar(14, 0, sc_h0); putTinyChar(18, 0, sc_h1);
-      putTinyChar(28, 0, sc_m0); putTinyChar(32, 0, sc_m1);
+
+      // Build date string "WED 18 MAR" for bottom-of-field display
+      static const char *_dA[7]  = {"SUN","MON","TUE","WED","THU","FRI","SAT"};
+      static const char *_mA[12] = {"JAN","FEB","MAR","APR","MAY","JUN",
+                                     "JUL","AUG","SEP","OCT","NOV","DEC"};
+      if (rtc[3] <= 6 && rtc[5] >= 1 && rtc[5] <= 12 && rtc[4] >= 1 && rtc[4] <= 31) {
+        const char *_d = _dA[rtc[3]]; const char *_m = _mA[rtc[5] - 1];
+        sc_date[0] = _d[0]; sc_date[1] = _d[1]; sc_date[2] = _d[2]; sc_date[3] = ' ';
+        sc_date[4] = (rtc[4] >= 10) ? ('0' + rtc[4] / 10) : ' ';
+        sc_date[5] = '0' + rtc[4] % 10; sc_date[6] = ' ';
+        sc_date[7] = _m[0]; sc_date[8] = _m[1]; sc_date[9] = _m[2]; sc_date[10] = '\0';
+      }
+
+      putTinyChar(14, SCORE_Y, sc_h0); putTinyChar(18, SCORE_Y, sc_h1);
+      putTinyChar(28, SCORE_Y, sc_m0); putTinyChar(32, SCORE_Y, sc_m1);
+      for (byte i = 0; i < 10; i++) putTinyChar(4 + i * 4, DATE_Y, sc_date[i]);
       pushMatrix();
 
 #if DEBUG_PONG_TIME
       DBG_INFO("[Pong] %02d:%02d:%02d", rtc[2], rtc[1], rtc[0]);
 #endif
-      bx = 23; by = random(4, 12);
+      bx = 23; by = random(8, 24);  // start ball clear of score/date rows
       vx = (random(0, 2) > 0) ?  1.0f : -1.0f;
       vy = (random(0, 2) > 0) ?  0.5f : -0.5f;
       bat1miss = bat2miss = 0;
@@ -605,10 +647,12 @@ void pong() {
       byte ep = pong_get_ball_endpoint(bx, by, vx, vy);
       if (bat1miss) {
         bat1miss = 0;
-        bat1_t = (ep > 8) ? random(0, 3) : 8 + random(0, 3);
+        // Intentionally aim away from ball endpoint
+        bat1_t = (ep > AI_MID) ? random(0, 3) : (BAT_MAX_Y - 2 + random(0, 3));
       } else {
-        byte s = (ep <= 5) ? 0 : ep - 5;
-        byte e = (ep <= 10) ? ep : 10;
+        // Aim to catch ball within bat face — s/e are valid bat top positions
+        byte s = (ep < BAT_HEIGHT) ? 0 : ep - (BAT_HEIGHT - 1);
+        byte e = (ep <= BAT_MAX_Y) ? ep : BAT_MAX_Y;
         bat1_t = random(s, e + 1);
       }
     }
@@ -617,24 +661,24 @@ void pong() {
       byte ep = pong_get_ball_endpoint(bx, by, vx, vy);
       if (bat2miss) {
         bat2miss = 0;
-        bat2_t = (ep > 8) ? random(0, 3) : 8 + random(0, 3);
+        bat2_t = (ep > AI_MID) ? random(0, 3) : (BAT_MAX_Y - 2 + random(0, 3));
       } else {
-        byte s = (ep <= 5) ? 0 : ep - 5;
-        byte e = (ep <= 10) ? ep : 10;
+        byte s = (ep < BAT_HEIGHT) ? 0 : ep - (BAT_HEIGHT - 1);
+        byte e = (ep <= BAT_MAX_Y) ? ep : BAT_MAX_Y;
         bat2_t = random(s, e + 1);
       }
     }
 
-    // Move bats
-    if (bat1_y > bat1_t && bat1_y > 0)  { bat1_y--; bat1_upd = 1; }
-    if (bat1_y < bat1_t && bat1_y < 10) { bat1_y++; bat1_upd = 1; }
-    if (bat2_y > bat2_t && bat2_y > 0)  { bat2_y--; bat2_upd = 1; }
-    if (bat2_y < bat2_t && bat2_y < 10) { bat2_y++; bat2_upd = 1; }
+    // Move bats — clamp within full field
+    if (bat1_y > bat1_t && bat1_y > 0)          { bat1_y--; bat1_upd = 1; }
+    if (bat1_y < bat1_t && bat1_y < BAT_MAX_Y)  { bat1_y++; bat1_upd = 1; }
+    if (bat2_y > bat2_t && bat2_y > 0)          { bat2_y--; bat2_upd = 1; }
+    if (bat2_y < bat2_t && bat2_y < BAT_MAX_Y)  { bat2_y++; bat2_upd = 1; }
 
     // Draw bat 1
     if (bat1_upd) {
-      for (byte i = 0; i < 16; i++) {
-        bool on = (i >= bat1_y && i < bat1_y + 6);
+      for (byte i = 0; i < LED_HEIGHT; i++) {
+        bool on = (i >= bat1_y && i < bat1_y + BAT_HEIGHT);
         plot(BAT1_X - 1, i, on);
         plot(BAT1_X - 2, i, on);
       }
@@ -642,8 +686,8 @@ void pong() {
     }
     // Draw bat 2
     if (bat2_upd) {
-      for (byte i = 0; i < 16; i++) {
-        bool on = (i >= bat2_y && i < bat2_y + 6);
+      for (byte i = 0; i < LED_HEIGHT; i++) {
+        bool on = (i >= bat2_y && i < bat2_y + BAT_HEIGHT);
         plot(BAT2_X + 1, i, on);
         plot(BAT2_X + 2, i, on);
       }
@@ -652,23 +696,23 @@ void pong() {
 
     bx += vx; by += vy;
 
-    if (by <= 0)  { vy = -vy; by = 0; }
-    if (by >= 15) { vy = -vy; by = 15; }
+    if (by <= 0)                { vy = -vy; by = 0; }
+    if (by >= (LED_HEIGHT - 1)) { vy = -vy; by = LED_HEIGHT - 1; }
 
     // Bat 1 collision
-    if ((int)bx == BAT1_X && bat1_y <= (int)by && (int)by <= bat1_y + 5) {
+    if ((int)bx == BAT1_X && bat1_y <= (int)by && (int)by <= bat1_y + (BAT_HEIGHT - 1)) {
       vx = -vx;
       if (random(0, 3) != 0) {
-        byte fl = (bat1_y <= 1) ? 0 : (bat1_y >= 8) ? 1 : (byte)random(0, 2);
-        if (fl == 0) { bat1_t += random(1, 3); if (vy < 2.0f)   vy += 0.2f; }
-        else         { bat1_t -= random(1, 3); if (vy > 0.2f)   vy -= 0.2f; }
+        byte fl = (bat1_y <= 2) ? 0 : (bat1_y >= BAT_MAX_Y - 2) ? 1 : (byte)random(0, 2);
+        if (fl == 0) { bat1_t += random(1, 3); if (vy < 2.0f) vy += 0.2f; }
+        else         { bat1_t -= random(1, 3); if (vy > 0.2f) vy -= 0.2f; }
       }
     }
     // Bat 2 collision
-    if ((int)bx == BAT2_X && bat2_y <= (int)by && (int)by <= bat2_y + 5) {
+    if ((int)bx == BAT2_X && bat2_y <= (int)by && (int)by <= bat2_y + (BAT_HEIGHT - 1)) {
       vx = -vx;
       if (random(0, 3) != 0) {
-        byte fl = (bat2_y <= 1) ? 0 : (bat2_y >= 8) ? 1 : (byte)random(0, 2);
+        byte fl = (bat2_y <= 2) ? 0 : (bat2_y >= BAT_MAX_Y - 2) ? 1 : (byte)random(0, 2);
         if (fl == 0) { bat2_t += random(1, 3); if (vy < 2.0f) vy += 0.2f; }
         else         { bat2_t -= random(1, 3); if (vy > 0.2f) vy -= 0.2f; }
       }
@@ -680,9 +724,10 @@ void pong() {
     plot(ex, ey, false);
     plot(px, py, true);
     ex = px; ey = py;
-    // Redraw score every frame so ball can never erase it
-    putTinyChar(14, 0, sc_h0); putTinyChar(18, 0, sc_h1);
-    putTinyChar(28, 0, sc_m0); putTinyChar(32, 0, sc_m1);
+    // Redraw score and date every frame so ball can never permanently erase them
+    putTinyChar(14, SCORE_Y, sc_h0); putTinyChar(18, SCORE_Y, sc_h1);
+    putTinyChar(28, SCORE_Y, sc_m0); putTinyChar(32, SCORE_Y, sc_m1);
+    for (byte i = 0; i < 10; i++) putTinyChar(4 + i * 4, DATE_Y, sc_date[i]);
     pushMatrix();
 
     if ((int)bx == 0 || (int)bx == 47) restart = 1;
@@ -697,6 +742,17 @@ void digits() {
   get_time();
   DBG_INFO("Digits mode entry: %02d:%02d:%02d  NTP status=%d",
            rtc[2], rtc[1], rtc[0], (int)timeStatus());
+
+  // Digits layout (32-row matrix):
+  //   Rows  0- 8  — top margin (9 rows)
+  //   Rows  9-22  — big font 10×14
+  //   Rows 23-31  — bottom margin (9 rows)
+  //   Colon dots at Y+3/Y+4 and Y+9/Y+10 → rows 12,13 and 18,19
+  const byte BIG_Y  = 9;
+  const byte COL_Y1 = BIG_Y + 3;   // 12
+  const byte COL_Y2 = BIG_Y + 4;   // 13
+  const byte COL_Y3 = BIG_Y + 9;   // 18
+  const byte COL_Y4 = BIG_Y + 10;  // 19
 
   byte mins  = 100;
   byte secs  = 100;
@@ -722,10 +778,10 @@ void digits() {
     if (secs != rtc[0]) {
       secs = rtc[0];
       bool dot_on = (secs % 2 == 0);
-      plot(23, 4, dot_on); plot(24, 4, dot_on);
-      plot(23, 5, dot_on); plot(24, 5, dot_on);
-      plot(23, 10, dot_on); plot(24, 10, dot_on);
-      plot(23, 11, dot_on); plot(24, 11, dot_on);
+      plot(23, COL_Y1, dot_on); plot(24, COL_Y1, dot_on);
+      plot(23, COL_Y2, dot_on); plot(24, COL_Y2, dot_on);
+      plot(23, COL_Y3, dot_on); plot(24, COL_Y3, dot_on);
+      plot(23, COL_Y4, dot_on); plot(24, COL_Y4, dot_on);
       pushMatrix();
     }
 
@@ -740,13 +796,13 @@ void digits() {
     if (hours < 10) { buf[1] = buf[0]; buf[0] = (ampm && hours < 10) ? ' ' : '0'; }
 
     byte offset = (ampm && hours < 10) ? 5 : 0;
-    if (offset == 0) putBigChar(0, 1, buf[0]);
-    putBigChar(12 - offset, 1, buf[1]);
+    if (offset == 0) putBigChar(0, BIG_Y, buf[0]);
+    putBigChar(12 - offset, BIG_Y, buf[1]);
 
     itoa(mins, buf, 10);
     if (mins < 10) { buf[1] = buf[0]; buf[0] = '0'; }
-    putBigChar(26 - offset, 1, buf[0]);
-    putBigChar(38 - offset, 1, buf[1]);
+    putBigChar(26 - offset, BIG_Y, buf[0]);
+    putBigChar(38 - offset, BIG_Y, buf[1]);
     pushMatrix();
   }
   fade_down();
@@ -760,8 +816,21 @@ void word_clock() {
   };
   const char *tens[5] = {"ten","twenty","thirty","forty","fifty"};
 
+  // Word clock layout (32-row matrix) — three tinyfont lines perfectly centred:
+  //   Block = 5 + 2 + 5 + 3 + 5 = 20 rows; margin = (32-20)/2 = 6 each side
+  //   Rows  0- 5  — top margin
+  //   Rows  6-10  — top phrase    (tinyfont 3×5)
+  //   Rows 11-12  — gap (2 rows)
+  //   Rows 13-17  — bottom phrase (tinyfont 3×5)
+  //   Rows 18-20  — gap (3 rows)
+  //   Rows 21-25  — date          (tinyfont 3×5)
+  //   Rows 26-31  — bottom margin
+  const byte WC_TOP_Y  = 6;
+  const byte WC_BOT_Y  = 13;
+  const byte WC_DATE_Y = 21;
+
   byte old_mins = 100;
-  set_next_date();
+  // Date is permanently displayed — no periodic full-screen interruption needed
 
   while (run_mode()) {
     tickHousekeeping();
@@ -773,7 +842,6 @@ void word_clock() {
     }
 
     get_time();
-    check_show_date();
 
     byte mins  = rtc[1];
     byte hours = rtc[2];
@@ -815,12 +883,14 @@ void word_clock() {
     byte ox = (45 - (len - 1) * 4) / 2;
     byte i = 0;
     fade_down();
-    while (top[i]) { putTinyChar(ox + i * 4, 2, top[i]); i++; }
+    while (top[i]) { putTinyChar(ox + i * 4, WC_TOP_Y,  top[i]); i++; }
 
     len = 0; while (bot[len]) len++;
     ox = (45 - (len - 1) * 4) / 2;
     i = 0;
-    while (bot[i]) { putTinyChar(ox + i * 4, 9, bot[i]); i++; }
+    while (bot[i]) { putTinyChar(ox + i * 4, WC_BOT_Y,  bot[i]); i++; }
+
+    drawDateRow(WC_DATE_Y);
     pushMatrix();
   }
   fade_down();

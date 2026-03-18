@@ -9,10 +9,10 @@
 // ── Virtual LED Matrix ────────────────────────────────────────────────────────
 // Emulates 2× Sure 2416 panels side-by-side: 48 cols × 16 rows
 #define LED_WIDTH           48
-#define LED_HEIGHT          16
-#define PIXEL_SIZE          6           // px per virtual LED (48*6=288 wide, 16*6=96 tall)
+#define LED_HEIGHT          32
+#define PIXEL_SIZE          6           // px per virtual LED (48*6=288 wide, 32*6=192 tall)
 #define LED_X_OFFSET        16          // (320 - 288) / 2 = 16
-#define LED_Y_OFFSET        72          // (240 - 96) / 2 = 72
+#define LED_Y_OFFSET        24          // (240 - 192) / 2 = 24
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 // Amber LED-on / dark amber LED-off for retro look
@@ -54,6 +54,7 @@
 // ── Clock behaviour ───────────────────────────────────────────────────────────
 #define NUM_MODES           4           // 0=Slide 1=Pong 2=Digits 3=WordClock
 #define AMPM_MODE           0           // 0=24 h, 1=12 h
+#define BAT_HEIGHT          8           // pong bat height in LED rows
 #define SLIDE_DELAY         20          // ms per slide animation frame
 #define PONG_BALL_DELAY     20          // ms per pong frame
 #define FADE_DELAY          25          // ms per fade brightness step
