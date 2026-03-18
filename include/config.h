@@ -49,6 +49,12 @@
 
 // ── NTP / Time ────────────────────────────────────────────────────────────────
 #define NTP_TIMEZONE        "Australia/Sydney"
+// POSIX fallback used when the ezTime Olson name lookup (timezoneapi.io HTTP call) fails.
+// Must be kept in sync with NTP_TIMEZONE manually.
+// Australia/Sydney: AEST=UTC+10 standard, AEDT=UTC+11 DST
+//   DST starts first Sunday in October at 02:00
+//   DST ends   first Sunday in April    at 03:00
+#define NTP_POSIX_FALLBACK  "AEST-10AEDT,M10.1.0,M4.1.0/3"
 #define NTP_SYNC_TIMEOUT_S  20
 
 // ── Clock behaviour ───────────────────────────────────────────────────────────

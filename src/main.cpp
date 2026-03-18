@@ -67,8 +67,10 @@ void initTime() {
   }
 
   if (!myTZ.setLocation(F(NTP_TIMEZONE))) {
-    DBG_WARN("Time: timezone lookup failed, falling back to UTC");
-    myTZ.setLocation(F("UTC"));
+    // timezoneapi.io HTTP lookup failed (common immediately after WiFi connect).
+    // Apply POSIX rule directly — correct DST, no network required.
+    DBG_WARN("Time: Olson lookup failed — applying POSIX fallback: %s", NTP_POSIX_FALLBACK);
+    myTZ.setPosix(NTP_POSIX_FALLBACK);
   }
 
   DBG_INFO("Time synced: %s  status=%d  tz=%s offset=%s",
