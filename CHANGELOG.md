@@ -11,7 +11,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Audit `mybigfont` 10×14 digits — check `1` and `7` proportions visually on device
 
 ### Next to do
-- WebUI
+- WebUI configuration (timezone, WiFi, debug level, mode)
 
 ### Phase 4 — Timer mode
 - Countdown timer as 5th clock mode (`NUM_MODES` → 5)
@@ -23,9 +23,26 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Requires Phase 3 display rows to show alongside time
 - Display in Slide mode row 3 or dedicated mode
 
-### Future
-- Add Webui to adjust all setting, Timezone, Wifi, Debug etc
-- 
+
+## [0.4.0] 2026-03-28
+
+### Added
+- HTTP web server (`WebServer` on port 80, `src/web.cpp`):
+  - `GET /` — HTML page with a CSS CYD hardware mockup; screenshot auto-refreshes
+    every 2 s via JS src-swap; foundation for future WebUI configuration
+  - `GET /screenshot.bmp` — 24-bit BMP of the current LED matrix sprite (288×192);
+    streams RGB332→BGR888 row-by-row from `matrixSprite.getPointer()` — no full-file
+    heap allocation; `Content-Length` set so browsers offer Save As directly
+  - `GET /api/info` — JSON: firmware, mode, modeName, brightness, uptime, freeHeap, ip
+- `WEB_SERVER_PORT` constant (80) in `config.h`
+- `initWeb()` skips silently if WiFi not connected (offline mode safe)
+- `webLoop()` wired into `tickHousekeeping()` so all four clock modes service
+  HTTP requests on every frame — not only on mode switches
+
+### Changed
+- `FW_VERSION` bumped to `"0.4"` (splash shows "v0.4")
+
+---
 
 ## [0.3.0] 2026-03-18
 

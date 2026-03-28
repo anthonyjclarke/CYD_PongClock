@@ -3,6 +3,7 @@
 #include "fonts.h"
 #include "config.h"
 #include "debug.h"
+#include "web.h"
 
 #include <XPT2046_Touchscreen.h>
 #include <SPI.h>
@@ -379,6 +380,7 @@ void display_date() {
 // updateBrightness() — LDR rolling average → setBrightness(); gated by LDR_UPDATE_MS.
 static void tickHousekeeping() {
   events();
+  webLoop();
 
   static uint32_t lastLDR = 0;
   uint32_t now = millis();

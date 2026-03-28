@@ -6,6 +6,8 @@ A faithful port of Nick Hall's Pong Clock (v7.5) to the ESP32 CYD (Cheap Yellow 
 
 Clock modes: **Slide** (digits slide in/out, date permanently below), **Pong** (game score = time, date permanently at bottom), **Digits** (large 10×14 font), **Word Clock** (time in words, date on third line). Mode switching via touchscreen. Time from NTP via WiFi. Animated splash screen on boot.
 
+HTTP web server (port 80, `src/web.cpp`): `GET /` returns a CSS CYD hardware mockup page with the live display screenshot auto-refreshing every 2 s; `GET /screenshot.bmp` streams the sprite buffer as a 24-bit BMP (288×192, RGB332→BGR888); `GET /api/info` returns JSON with mode, brightness, uptime, heap, IP. Foundation for future WebUI — all configuration will be added here. Server is skipped silently if WiFi is offline.
+
 ## Hardware
 
 - Board: `ESP32-2432S028R (CYD)`
@@ -36,13 +38,15 @@ Touch CS: GPIO 33 (separate VSPI bus from display).
 
 ```
 src/
-  main.cpp      — setup(), loop(), initDisplay/WiFi/Time
+  main.cpp      — setup(), loop(), initDisplay/WiFi/Time/Web
   display.cpp   — plot(), cls(), fade_down/up, sprite management
   clock.cpp     — all clock modes + font rendering + touch
+  web.cpp       — WebServer routes: /, /screenshot.bmp, /api/info
 include/
-  config.h      — all tuneable constants
+  config.h      — all tuneable constants (incl. WEB_SERVER_PORT)
   display.h     — plot/cls/fade declarations, extern tft + sprite
   clock.h       — clock mode declarations
+  web.h         — initWeb(), webLoop() declarations
   fonts.h       — myfont(5×7), mybigfont(10×14), mytinyfont(3×5) in PROGMEM
   debug.h       — leveled debug macros
   secrets.h     — WiFi credentials (gitignored)
@@ -68,7 +72,7 @@ Screen split into left/right halves at `TOUCH_X_MID`. Single tap left half → p
 
 - Port: `/dev/cu.usbserial-*` (CP2102)
 - Upload speed: 230400 (921600 can fail on some cables)
-- After flash: check Serial for `Display initialised 320x240` and `WiFi connected` then verify clock shows on screen within ~10 s of NTP sync.
+- After flash: check Serial for `Display initialised 320x240`, `WiFi connected`, and `Web server started — http://…` then verify clock shows on screen within ~10 s of NTP sync.
 
 ## Rules
 

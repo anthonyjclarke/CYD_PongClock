@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "display.h"
 #include "clock.h"
+#include "web.h"
 
 TFT_eSPI tft;
 
@@ -136,6 +137,7 @@ void setup() {
   initTouch();
   initWiFi();
   initTime();
+  initWeb();
 
   DBG_INFO("Free heap: %d bytes", ESP.getFreeHeap());
 

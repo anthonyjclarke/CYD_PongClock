@@ -2,7 +2,7 @@
 // config.h — PongClock CYD user-tuneable constants
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FW_VERSION          "0.3"       // shown on splash screen — update with each release
+#define FW_VERSION          "0.4"       // shown on splash screen — update with each release
 
 // ── Display ───────────────────────────────────────────────────────────────────
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)
@@ -88,6 +88,9 @@
 #define DEBUG_DIGITS_TIME   1   // print HH:MM on each minutes tick in Digits mode
 #define DEBUG_PONG_TIME     1   // print HH:MM on each restart (minute boundary) in Pong mode
 #define DEBUG_WORD_TIME     1   // print word-clock phrase on each minutes tick in Word mode
+
+// ── Web server ────────────────────────────────────────────────────────────────
+constexpr uint16_t WEB_SERVER_PORT = 80;  // HTTP port — routes: / /screenshot.bmp /api/info
 
 // ── Debug ─────────────────────────────────────────────────────────────────────
 #ifndef DEBUG_LEVEL
