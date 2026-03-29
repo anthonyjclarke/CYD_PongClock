@@ -2,7 +2,7 @@
 // config.h — PongClock CYD user-tuneable constants
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FW_VERSION          "0.4"       // shown on splash screen — update with each release
+#define FW_VERSION          "0.6"       // shown on splash screen — update with each release
 
 // ── Display ───────────────────────────────────────────────────────────────────
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)
@@ -61,11 +61,12 @@
 #define NTP_SYNC_TIMEOUT_S  20
 
 // ── Clock behaviour ───────────────────────────────────────────────────────────
-#define NUM_MODES           4           // 0=Slide 1=Pong 2=Digits 3=WordClock
+#define NUM_MODES           5           // 0=Slide 1=Pong 2=Digits 3=WordClock 4=Invaders
 #define AMPM_MODE           0           // 0=24 h, 1=12 h
 #define BAT_HEIGHT          8           // pong bat height in LED rows
 #define SLIDE_DELAY         20          // ms per slide animation frame
 #define PONG_BALL_DELAY     20          // ms per pong frame
+#define INVADER_SCROLL_DELAY 100        // ms per invader scroll step
 #define FADE_DELAY          25          // ms per fade brightness step
 #define DATE_DISPLAY_MINS   10          // minutes between automatic date displays (Pong/Digits/Word modes)
 
@@ -88,6 +89,7 @@
 #define DEBUG_DIGITS_TIME   1   // print HH:MM on each minutes tick in Digits mode
 #define DEBUG_PONG_TIME     1   // print HH:MM on each restart (minute boundary) in Pong mode
 #define DEBUG_WORD_TIME     1   // print word-clock phrase on each minutes tick in Word mode
+#define DEBUG_INVADER_TIME  1   // print HH:MM on each minutes tick in Invaders mode
 
 // ── Web server ────────────────────────────────────────────────────────────────
 constexpr uint16_t WEB_SERVER_PORT = 80;  // HTTP port — routes: / /screenshot.bmp /api/info

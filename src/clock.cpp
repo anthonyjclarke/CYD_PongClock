@@ -897,3 +897,137 @@ void word_clock() {
   }
   fade_down();
 }
+
+// ── INVADERS MODE ─────────────────────────────────────────────────────────────
+// Faithful port of Richard Shipman's invader mode from Pong Clock v2.40.
+// Layout on 32-row matrix:
+//   Rows  1–7  : HH:MM in 5×7 font (same positions as original)
+//   Rows 11–17 : invader scroll zone
+//   Rows 27–31 : date (tinyfont), permanent
+//
+// Invader sprite bit convention: bit6=top row (0x40>>row) — matches original Font.h.
+
+static void draw_invader(int x, byte y, byte type, bool wiggle) {
+  byte frame = wiggle ? 1 : 0;
+  for (byte half = 0; half < 2; half++) {
+    for (byte col = 0; col < 5; col++) {
+      byte dots = pgm_read_byte(&invader_sprites[type][frame][half][col]);
+      int  px   = x + (int)(half * 5) + (int)col;
+      if (px < 0 || px >= LED_WIDTH) continue;
+      for (byte row = 0; row < 7; row++) {
+        if (y + row < LED_HEIGHT)
+          plot(px, y + row, (dots & (0x40 >> row)) != 0);
+      }
+    }
+  }
+}
+
+// Scroll an invader from xstart to xend (exclusive) at ypos.
+// Returns false if the user tapped to change mode (mode already updated).
+static bool invader_scroll(byte ypos, int xstart, int xend, byte type) {
+  bool  wiggle = false;
+  int   xstep  = (xstart < xend) ? 1 : -1;
+
+  for (int i = xstart; i != xend; i += xstep) {
+    draw_invader(i, ypos, type, wiggle);
+    wiggle = !wiggle;
+    pushMatrix();
+
+    // Delay with touch polling — allows mode switch mid-scroll
+    uint32_t t0 = millis();
+    while (millis() - t0 < INVADER_SCROLL_DELAY) {
+      run_mode();
+      int8_t tap = checkTap();
+      if (tap != 0) {
+        clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
+        fade_down();
+        return false;
+      }
+      delay(5);
+    }
+
+    // Erase trailing edge columns (matches original logic)
+    if (abs(i - xend) > 1) {
+      for (byte yr = ypos; yr < ypos + 7; yr++) {
+        if (i     >= 0 && i     < LED_WIDTH) plot(i,     yr, false);
+        if (i + 9 >= 0 && i + 9 < LED_WIDTH) plot(i + 9, yr, false);
+      }
+    }
+  }
+  return true;
+}
+
+void invaders() {
+  const byte TIME_Y  = 1;   // top of HH:MM characters (rows 1–7)
+  const byte INV_Y   = 11;  // top of invader sprite (rows 11–17)
+  const byte DATE_Y  = LED_HEIGHT - 5;  // 27
+
+  cls();
+
+  // ── Intro ──────────────────────────────────────────────────────────────────
+  byte i = 0;
+  const char intro[] = "Invaders!";
+  while (intro[i]) {
+    putTinyChar((i * 4) + 6, (LED_HEIGHT - 5) / 2, intro[i]);
+    pushMatrix();
+    i++;
+  }
+  delay(1200);
+  cls();
+
+  get_time();
+  byte prev_mins = 255;   // forces initial draw
+
+  DBG_INFO("Invaders mode entry: %02d:%02d  NTP status=%d",
+           rtc[2], rtc[1], (int)timeStatus());
+
+  while (run_mode()) {
+    tickHousekeeping();
+
+    int8_t tap = checkTap();
+    if (tap != 0) {
+      clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
+      fade_down(); return;
+    }
+
+    get_time();
+
+    // Refresh HH:MM if minutes changed
+    if (rtc[1] != prev_mins) {
+      prev_mins = rtc[1];
+
+      byte hours = rtc[2];
+      byte mins  = rtc[1];
+      if (ampm) { if (hours > 12) hours -= 12; if (hours < 1) hours += 12; }
+
+      char buf[3];
+      itoa(hours, buf, 10);
+      if (hours < 10) { buf[1] = buf[0]; buf[0] = '0'; }
+      putChar(13, TIME_Y, buf[0]);
+      putChar(19, TIME_Y, buf[1]);
+
+      plot(25, TIME_Y + 2, true);   // colon top dot
+      plot(25, TIME_Y + 4, true);   // colon bottom dot
+
+      itoa(mins, buf, 10);
+      if (mins < 10) { buf[1] = buf[0]; buf[0] = '0'; }
+      putChar(27, TIME_Y, buf[0]);
+      putChar(33, TIME_Y, buf[1]);
+
+#if DEBUG_INVADER_TIME
+      DBG_INFO("[Invaders] %02d:%02d", hours, mins);
+#endif
+    }
+
+    drawDateRow(DATE_Y);
+    pushMatrix();
+
+    // Scroll invader left-to-right then right-to-left
+    byte type = (byte)random(0, 3);
+    if (!invader_scroll(INV_Y, -11, 50, type)) return;
+
+    type = (byte)random(0, 3);
+    if (!invader_scroll(INV_Y, 49, -11, type)) return;
+  }
+  fade_down();
+}

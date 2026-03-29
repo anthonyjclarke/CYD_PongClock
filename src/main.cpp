@@ -169,6 +169,7 @@ void loop() {
     case 1: pong();       break;
     case 2: digits();     break;
     case 3: word_clock(); break;
+    case 4: invaders();   break;
     default: clock_mode = 0; break;
   }
 }

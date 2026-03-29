@@ -94,6 +94,25 @@ const byte myfont[68][5] PROGMEM = {
 };
 
 
+// ── Invader sprites ───────────────────────────────────────────────────────────
+// 3 types × 2 wiggle frames × 2 halves × 5 columns.
+// Each sprite is 10 cols × 7 rows, stored as two 5-col halves.
+// Bit convention: bit6 (0x40) = top row, bit0 = bottom row — matches original Font.h.
+// Render with: if (byte & (0x40 >> row)) plot(...)
+// Types: 0=squid  1=crab  2=octopus
+const byte invader_sprites[3][2][2][5] PROGMEM = {
+  // ── Type 0: squid ──────────────────────────────────────────────────────────
+  { {{0x00,0x19,0x3A,0x6D,0x7A}, {0x7A,0x6D,0x3A,0x19,0x00}},   // frame 0
+    {{0x00,0x1A,0x3D,0x68,0x7C}, {0x7C,0x68,0x3D,0x1A,0x00}} },  // frame 1
+  // ── Type 1: crab ───────────────────────────────────────────────────────────
+  { {{0x38,0x0D,0x5E,0x36,0x1C}, {0x1C,0x36,0x5E,0x0D,0x38}},   // frame 0
+    {{0x0E,0x0C,0x5E,0x35,0x1C}, {0x1C,0x35,0x5E,0x0C,0x0E}} },  // frame 1
+  // ── Type 2: octopus ────────────────────────────────────────────────────────
+  { {{0x19,0x39,0x3A,0x6C,0x7A}, {0x7A,0x6C,0x3A,0x39,0x19}},   // frame 0
+    {{0x18,0x39,0x3B,0x6C,0x7C}, {0x7C,0x6C,0x3B,0x39,0x18}} },  // frame 1
+};
+
+
 // ── 10×14 big font (digits 0-9 only) ──────────────────────────────────────────
 // 7-segment style on a 10-col × 14-row grid.
 // 20 bytes per glyph: bytes 0-9 = top 8 rows, bytes 10-19 = bottom 6 rows.

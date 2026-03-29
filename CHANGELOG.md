@@ -24,6 +24,30 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Display in Slide mode row 3 or dedicated mode
 
 
+## [0.6.0] 2026-03-29
+
+### Added
+- **Invaders mode** (mode 4) — faithful port of Richard Shipman's space invader mode
+  from Pong Clock v2.40. Three invader types (squid / crab / octopus) scroll across
+  the display left-to-right then right-to-left with a two-frame wiggle animation.
+  HH:MM shown in 5×7 font at top; date (tinyfont) permanently at bottom. Touch to
+  switch mode works mid-scroll.
+- **`invader_sprites[3][2][2][5]`** in `fonts.h` — original sprite bitmaps from Font.h
+  (Richard Shipman) stored in PROGMEM; bit6=top convention, rendered with `0x40>>row`.
+- **`invadersModeRun()`** in `clock.js` — pixel-exact JS port of the invader scroll
+  logic; sprite data, bit convention and timing all match the C++ implementation.
+- **`NUM_MODES` → 5** in `config.h`; `INVADER_SCROLL_DELAY=100`, `DEBUG_INVADER_TIME=1`
+  added.
+- Invaders mode pill and radio button added to `data/index.html`.
+
+### Changed
+- `src/main.cpp`: added `case 4: invaders(); break;`
+- `src/web.cpp`: `MODE_NAMES` extended to 5 entries.
+- `data/clock.js`: `MODE_KEYS` / `MODE_NAMES` extended; `startMode()` handles
+  `'invaders'`.
+
+---
+
 ## [0.5.0] 2026-03-28
 
 ### Added

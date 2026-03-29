@@ -90,7 +90,7 @@ static void handleScreenshot() {
 
 // ── /api/info ─────────────────────────────────────────────────────────────────
 static const char* const MODE_NAMES[NUM_MODES] = {
-  "Slide", "Pong", "Digits", "WordClock"
+  "Slide", "Pong", "Digits", "WordClock", "Invaders"
 };
 
 static void handleApiInfo() {
