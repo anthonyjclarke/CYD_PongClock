@@ -40,8 +40,6 @@ Open `http://<device-ip>/` in any browser. The WebUI runs all four clock modes l
 |:----------------------------------------:|
 | **All four modes cycling** — Slide · Pong · Digits · Word Clock |
 
-*GIF pending — record a screen capture of all four modes cycling on the device or WebUI and save as `Images/modes-demo.gif`.*
-
 ---
 
 ## Features
