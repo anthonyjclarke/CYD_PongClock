@@ -2,7 +2,7 @@
 // config.h — PongClock CYD user-tuneable constants
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FW_VERSION          "0.6"       // shown on splash screen — update with each release
+#define FW_VERSION          "0.7"       // shown on splash screen — update with each release
 
 // ── Display ───────────────────────────────────────────────────────────────────
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)
@@ -62,6 +62,7 @@
 
 // ── Clock behaviour ───────────────────────────────────────────────────────────
 #define NUM_MODES           5           // 0=Slide 1=Pong 2=Digits 3=WordClock 4=Invaders
+#define DEFAULT_CLOCK_MODE  0           // mode used on first boot (no NVS); power-cycle resumes last saved mode
 #define AMPM_MODE           0           // 0=24 h, 1=12 h
 #define BAT_HEIGHT          8           // pong bat height in LED rows
 #define SLIDE_DELAY         20          // ms per slide animation frame

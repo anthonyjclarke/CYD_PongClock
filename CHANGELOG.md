@@ -24,6 +24,34 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Display in Slide mode row 3 or dedicated mode
 
 
+## [0.7.0] 2026-03-30
+
+### Added
+- **`DEFAULT_CLOCK_MODE`** in `config.h` — sets the clock mode used on the first boot
+  after a firmware upload; power-cycle/reset resumes the last saved mode unchanged
+- **Firmware version detection in NVS** — `loadConfig()` compares the stored `"fwver"`
+  NVS key against `FW_VERSION`; on mismatch (new firmware) it resets `clockMode` to
+  `DEFAULT_CLOCK_MODE` and writes the new version tag; power cycles leave the tag
+  unchanged so the last-used mode is resumed
+
+### Changed
+- **Splash screen — LED dot border** — outer ring of the 48×32 matrix lit as amber LED
+  cells via `plot()`; replaces previous TFT `drawRect()` lines; border only visible
+  during splash (cleared by CRT-collapse + `tft.fillScreen()` on exit)
+- **Splash screen — layout** — three evenly-spaced lines of `myfont` 5×7 fill the
+  bordered box: `PONG` at y=2, `CLOCK` at y=12, version at y=22 (2-row top margin,
+  3-row gaps, 3-row bottom margin in the 32-row matrix)
+- `showStatus()` repositioned to bottom TFT margin (y=220) so WiFi/NTP init messages
+  never overlap the matrix area or border
+- `FW_VERSION` bumped `"0.6"` → `"0.7"`
+
+### Fixed
+- **Invaders screenshot blank** — `webLoop()` added inside `invader_scroll()` 100 ms
+  poll loop; previously the HTTP server was only serviced between scroll passes (~12 s
+  apart), so `/screenshot.bmp` captured only time + date with no invader visible
+
+---
+
 ## [0.6.0] 2026-03-29
 
 ### Added

@@ -12,7 +12,14 @@ void loadConfig() {
   Preferences prefs;
   prefs.begin(NVS_NS, true);  // read-only
 
-  rtCfg.clockMode    = prefs.getUChar("mode",   0);
+  // Detect new firmware: compare stored version tag against running FW_VERSION.
+  // A mismatch means this is the first boot after a flash — reset clock mode to
+  // DEFAULT_CLOCK_MODE. Power cycles leave the version tag unchanged → resume last mode.
+  char storedVer[16] = "";
+  prefs.getString("fwver", storedVer, sizeof(storedVer));
+  bool newFirmware = (strcmp(storedVer, FW_VERSION) != 0);
+
+  rtCfg.clockMode    = prefs.getUChar("mode",   DEFAULT_CLOCK_MODE);
   rtCfg.brightness   = prefs.getUChar("bright", BRIGHTNESS_DEFAULT);
   rtCfg.ampm         = prefs.getBool ("ampm",   AMPM_MODE);
   rtCfg.ledOnR       = prefs.getUChar("onR",    COLOUR_LED_ON_R);
@@ -34,7 +41,18 @@ void loadConfig() {
 
   prefs.end();
 
-  // Clamp to valid ranges
+  // New firmware: override clock mode and persist the new version tag + mode
+  if (newFirmware) {
+    rtCfg.clockMode = DEFAULT_CLOCK_MODE;
+    Preferences pw;
+    pw.begin(NVS_NS, false);
+    pw.putString("fwver", FW_VERSION);
+    pw.putUChar ("mode",  DEFAULT_CLOCK_MODE);
+    pw.end();
+    DBG_INFO("New firmware %s — clock mode reset to %d", FW_VERSION, DEFAULT_CLOCK_MODE);
+  }
+
+  // Clamp to valid range (guards against stale NVS after NUM_MODES reduction)
   if (rtCfg.clockMode >= NUM_MODES) rtCfg.clockMode = 0;
 
   DBG_INFO("Config loaded: mode=%d bright=%d ampm=%d tz=%s",
@@ -56,15 +74,16 @@ void saveConfig() {
   prefs.putUChar("offB",    rtCfg.ledOffB);
   prefs.putString("tz",     rtCfg.timezone);
   prefs.putString("ntp",    rtCfg.ntpServer);
-  prefs.putUChar("dateInt", rtCfg.dateInterval);
-  prefs.putBool ("ldr",     rtCfg.ldrEnabled);
+  prefs.putUChar ("dateInt", rtCfg.dateInterval);
+  prefs.putBool  ("ldr",     rtCfg.ldrEnabled);
+  prefs.putString("fwver",   FW_VERSION);   // keep version tag current
 
   prefs.end();
   DBG_INFO("Config saved");
 }
 
 void resetConfigToDefaults() {
-  rtCfg.clockMode    = 0;
+  rtCfg.clockMode    = DEFAULT_CLOCK_MODE;
   rtCfg.brightness   = BRIGHTNESS_DEFAULT;
   rtCfg.ampm         = AMPM_MODE;
   rtCfg.ledOnR       = COLOUR_LED_ON_R;
