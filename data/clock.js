@@ -392,10 +392,10 @@ function drawDateRow(y) {
 }
 
 // ── Mode controller ───────────────────────────────────────────────────────────
-let activeMode = null;   // 'slide' | 'pong' | 'digits' | 'word' | null
+let activeMode = null;   // 'slide' | 'pong' | 'digits' | 'word' | 'invaders' | null
 
-const MODE_KEYS  = ['slide', 'pong', 'digits', 'word'];
-const MODE_NAMES = ['Slide', 'Pong', 'Digits', 'Word Clock'];
+const MODE_KEYS  = ['slide', 'pong', 'digits', 'word', 'invaders'];
+const MODE_NAMES = ['Slide', 'Pong', 'Digits', 'Word Clock', 'Invaders'];
 
 function startMode(modeName) {
   activeMode = modeName;
@@ -404,10 +404,11 @@ function startMode(modeName) {
   applyBrightness();
 
   switch (modeName) {
-    case 'slide':  slideModeRun().catch(console.error);  break;
-    case 'pong':   pongModeRun().catch(console.error);   break;
-    case 'digits': digitsModeRun().catch(console.error); break;
-    case 'word':   wordModeRun().catch(console.error);   break;
+    case 'slide':    slideModeRun().catch(console.error);    break;
+    case 'pong':     pongModeRun().catch(console.error);     break;
+    case 'digits':   digitsModeRun().catch(console.error);   break;
+    case 'word':     wordModeRun().catch(console.error);     break;
+    case 'invaders': invadersModeRun().catch(console.error); break;
   }
 
   // Sync mode pills
@@ -810,6 +811,107 @@ async function wordModeRun() {
 
     drawDateRow(WC_DATE_Y);
     pushMatrix();
+  }
+}
+
+// ── INVADERS MODE ─────────────────────────────────────────────────────────────
+// Sprite data [3 types][2 frames][2 halves][5 cols]
+// Bit convention: bit6 (0x40) = top row — matches original Font.h / fonts.h PROGMEM data.
+// Types: 0=squid  1=crab  2=octopus
+const INVADER_SPRITES = [
+  // Type 0: squid
+  [ [[0x00,0x19,0x3A,0x6D,0x7A],[0x7A,0x6D,0x3A,0x19,0x00]],
+    [[0x00,0x1A,0x3D,0x68,0x7C],[0x7C,0x68,0x3D,0x1A,0x00]] ],
+  // Type 1: crab
+  [ [[0x38,0x0D,0x5E,0x36,0x1C],[0x1C,0x36,0x5E,0x0D,0x38]],
+    [[0x0E,0x0C,0x5E,0x35,0x1C],[0x1C,0x35,0x5E,0x0C,0x0E]] ],
+  // Type 2: octopus
+  [ [[0x19,0x39,0x3A,0x6C,0x7A],[0x7A,0x6C,0x3A,0x39,0x19]],
+    [[0x18,0x39,0x3B,0x6C,0x7C],[0x7C,0x6C,0x3B,0x39,0x18]] ],
+];
+
+function drawInvader(x, y, type, wiggle) {
+  const frame = wiggle ? 1 : 0;
+  for (let half = 0; half < 2; half++) {
+    for (let col = 0; col < 5; col++) {
+      const dots = INVADER_SPRITES[type][frame][half][col];
+      const px = x + half * 5 + col;
+      if (px < 0 || px >= LED_W) continue;
+      for (let row = 0; row < 7; row++) {
+        if (y + row < LED_H)
+          plot(px, y + row, (dots & (0x40 >> row)) !== 0);
+      }
+    }
+  }
+}
+
+async function scrollInvader(ypos, xstart, xend, type) {
+  const xstep = xstart < xend ? 1 : -1;
+  let wiggle = false;
+  for (let i = xstart; i !== xend; i += xstep) {
+    if (activeMode !== 'invaders') return false;
+    drawInvader(i, ypos, type, wiggle);
+    wiggle = !wiggle;
+    pushMatrix();
+    await sleep(100);
+    if (activeMode !== 'invaders') return false;
+    // Erase trailing edge columns (matches original logic)
+    if (Math.abs(i - xend) > 1) {
+      for (let yr = ypos; yr < ypos + 7; yr++) {
+        if (i     >= 0 && i     < LED_W) plot(i,     yr, false);
+        if (i + 9 >= 0 && i + 9 < LED_W) plot(i + 9, yr, false);
+      }
+    }
+  }
+  return true;
+}
+
+async function invadersModeRun() {
+  const TIME_Y = 1;
+  const INV_Y  = 11;
+  const DATE_Y = LED_H - 5;  // 27
+
+  cls();
+
+  // Intro
+  const intro = 'Invaders!';
+  for (let i = 0; i < intro.length; i++) {
+    putTinyChar(i * 4 + 6, Math.floor((LED_H - 5) / 2), intro[i]);
+    pushMatrix();
+  }
+  await sleep(1200);
+  if (activeMode !== 'invaders') return;
+  cls();
+
+  let prevMins = -1;
+
+  while (activeMode === 'invaders') {
+    const t = getTime();
+
+    // Refresh HH:MM when minutes change
+    if (t.minutes !== prevMins) {
+      prevMins = t.minutes;
+      let hrs = t.hours;
+      if (cfg.ampm) { if (hrs > 12) hrs -= 12; if (hrs < 1) hrs += 12; }
+      const h0 = hrs  < 10 ? '0' : String(Math.floor(hrs  / 10));
+      const h1 = String(hrs  % 10);
+      const m0 = t.minutes < 10 ? '0' : String(Math.floor(t.minutes / 10));
+      const m1 = String(t.minutes % 10);
+      putChar(13, TIME_Y, h0); putChar(19, TIME_Y, h1);
+      plot(25, TIME_Y + 2, true);   // colon top
+      plot(25, TIME_Y + 4, true);   // colon bottom
+      putChar(27, TIME_Y, m0); putChar(33, TIME_Y, m1);
+    }
+
+    drawDateRow(DATE_Y);
+    pushMatrix();
+
+    const type1 = Math.floor(Math.random() * 3);
+    if (!await scrollInvader(INV_Y, -11, 50, type1)) return;
+    if (activeMode !== 'invaders') return;
+
+    const type2 = Math.floor(Math.random() * 3);
+    if (!await scrollInvader(INV_Y, 49, -11, type2)) return;
   }
 }
 

@@ -35,40 +35,52 @@ void initDisplay() {
 }
 
 // ── Startup splash screen ─────────────────────────────────────────────────────
-// Typewriter reveal → 900 ms hold → CRT-collapse exit. Total ≈ 2.3 s.
-//
-// Layout in 32-row LED matrix — 3-row margins top and bottom:
-//   "PONG"  myfont 5×7    row  3  x=12
-//   "CLOCK" myfont 5×7    row 13  x=9
-//   "v0.3"  tinyfont 3×5  row 24  x=16
+// Three lines of myfont 5×7 evenly spaced inside the bordered matrix.
+// Layout (32 rows):  margin 2 | PONG 7 | gap 3 | CLOCK 7 | gap 3 | version 7 | margin 3
+//   "PONG"  y=2   x=12  (4 chars × 6 – 1 = 23px, centred in 48)
+//   "CLOCK" y=12  x=9   (5 chars × 6 – 1 = 29px)
+//   "vX.X"  y=22  x=12  (same width as PONG)
+// Typewriter reveal → 900 ms hold → CRT-collapse exit.
+// Draw the outer ring of the LED matrix as lit dots — splash border only.
+// Cleared naturally by the CRT-collapse animation and final cls().
+static void drawLedBorder() {
+  for (byte x = 0; x < LED_WIDTH; x++) {
+    plot(x, 0,              true);   // top row
+    plot(x, LED_HEIGHT - 1, true);   // bottom row
+  }
+  for (byte y = 1; y < LED_HEIGHT - 1; y++) {
+    plot(0,             y, true);    // left column
+    plot(LED_WIDTH - 1, y, true);    // right column
+  }
+}
+
 static void showSplash() {
   cls();
+  drawLedBorder();
+  pushMatrix();
 
   // ── Typewriter: PONG ────────────────────────────────────────────────────────
-  // "PONG" span = 3×6+5 = 23px → x = (48-23)/2 = 12
   const byte xP[4] = {12, 18, 24, 30};
-  const char sP[4] = {'P','O','N','G'};
-  for (byte i = 0; i < 4; i++) { putChar(xP[i], 3, sP[i]); pushMatrix(); delay(60); }
+  const char sP[4] = {'P', 'O', 'N', 'G'};
+  for (byte i = 0; i < 4; i++) { putChar(xP[i], 2, sP[i]); pushMatrix(); delay(60); }
 
   // ── Typewriter: CLOCK ───────────────────────────────────────────────────────
-  // "CLOCK" span = 4×6+5 = 29px → x = (48-29)/2 = 9
   const byte xC[5] = {9, 15, 21, 27, 33};
-  const char sC[5] = {'C','L','O','C','K'};
-  for (byte i = 0; i < 5; i++) { putChar(xC[i], 13, sC[i]); pushMatrix(); delay(60); }
+  const char sC[5] = {'C', 'L', 'O', 'C', 'K'};
+  for (byte i = 0; i < 5; i++) { putChar(xC[i], 12, sC[i]); pushMatrix(); delay(60); }
 
   // ── Typewriter: version ─────────────────────────────────────────────────────
-  // "v" FW_VERSION e.g. "v0.3" — span = 3×4+3 = 15px → x = (48-15)/2 = 16
-  const char* ver = "v" FW_VERSION;
-  byte vlen = (byte)strlen(ver);
-  byte vx   = (byte)((LED_WIDTH - ((vlen - 1) * 4 + 3)) / 2);
+  char verBuf[8];
+  snprintf(verBuf, sizeof(verBuf), "v%s", FW_VERSION);
+  byte vlen = (byte)strlen(verBuf);
+  byte vx   = (byte)((LED_WIDTH - (vlen * 6 - 1)) / 2);
   delay(100);
-  for (byte i = 0; i < vlen; i++) { putTinyChar(vx + i * 4, 24, ver[i]); pushMatrix(); delay(60); }
+  for (byte i = 0; i < vlen; i++) { putChar(vx + i * 6, 22, verBuf[i]); pushMatrix(); delay(60); }
 
   // ── Hold ────────────────────────────────────────────────────────────────────
   delay(900);
 
   // ── CRT-collapse: rows fold inward from top and bottom simultaneously ────────
-  // 16 passes × (SPI ~20ms + 15ms delay) ≈ 560ms
   for (byte i = 0; i < LED_HEIGHT / 2; i++) {
     for (byte x = 0; x < LED_WIDTH; x++) {
       plot(x, i,                  false);
@@ -78,16 +90,17 @@ static void showSplash() {
     delay(15);
   }
 
-  cls(); pushMatrix();  // clean slate for WiFi status
+  // Restore plain background — border only visible during splash
+  tft.fillScreen(tft.color565(5, 2, 0));
+  cls(); pushMatrix();
 }
 
-// ── Status line on screen (below matrix, for init messages) ───────────────────
+// ── Status line in bottom margin during init (never touches matrix sprite) ────
 static void showStatus(const char* msg) {
-  tft.setTextColor(tft.color565(180, 100, 0), tft.color565(5, 2, 0));
+  tft.setTextColor(tft.color565(180, 100, 0), tft.color565(20, 8, 0));
   tft.setTextSize(1);
-  // centre in the ~240px below/above matrix
   int16_t x = (tft.width() - (int16_t)(strlen(msg) * 6)) / 2;
-  tft.drawString(msg, x > 0 ? x : 0, 20, 2);
+  tft.drawString(msg, x > 0 ? x : 0, 220, 2);
 }
 
 // ── WiFi init ─────────────────────────────────────────────────────────────────
@@ -169,6 +182,7 @@ void loop() {
     case 1: pong();       break;
     case 2: digits();     break;
     case 3: word_clock(); break;
+    case 4: invaders();   break;
     default: clock_mode = 0; break;
   }
 }

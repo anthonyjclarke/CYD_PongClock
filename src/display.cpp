@@ -26,7 +26,7 @@ void initColours() {
   }
   matrixSprite.fillSprite(colourOff);
 
-  // Fill the screen background (border around the matrix) with a slightly darker shade
+  // Fill the screen background (border strips around the matrix)
   tft.fillScreen(tft.color565(5, 2, 0));
 
   DBG_INFO("Display colours initialised, sprite %dx%d depth=8 heap=%d",

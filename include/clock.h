@@ -9,7 +9,7 @@ extern Timezone myTZ;  // defined in main.cpp — used by get_time()
 
 // ── State ─────────────────────────────────────────────────────────────────────
 extern byte  rtc[7];      // [0]=sec [1]=min [2]=hr [3]=dow [4]=day [5]=mon [6]=yr%100
-extern byte  clock_mode;  // 0=Slide 1=Pong 2=Digits 3=WordClock
+extern byte  clock_mode;  // 0=Slide 1=Pong 2=Digits 3=WordClock 4=Invaders
 extern bool  ampm;        // false=24h true=12h
 
 // ── Time ──────────────────────────────────────────────────────────────────────
@@ -28,6 +28,7 @@ void slide();
 void pong();
 void digits();
 void word_clock();
+void invaders();
 
 // ── Date display ─────────────────────────────────────────────────────────────
 void display_date();

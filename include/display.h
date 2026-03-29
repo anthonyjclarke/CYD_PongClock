@@ -42,3 +42,4 @@ void updateBrightness();
 // Does not redraw the sprite — the next plot()/cls() call will use the new colours.
 void setLedColours(uint8_t onR, uint8_t onG, uint8_t onB,
                    uint8_t offR, uint8_t offG, uint8_t offB);
+
