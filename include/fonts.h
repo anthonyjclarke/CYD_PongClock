@@ -95,6 +95,10 @@ const byte myfont[68][5] PROGMEM = {
 
 
 // ── Invader sprites ───────────────────────────────────────────────────────────
+// Sprite data ported from Richard Shipman's PongClock v2.40 Font.h
+// Original source: https://github.com/RichardShipman/PongClock
+// Used with thanks — sprite bitmaps unchanged from the original.
+//
 // 3 types × 2 wiggle frames × 2 halves × 5 columns.
 // Each sprite is 10 cols × 7 rows, stored as two 5-col halves.
 // Bit convention: bit6 (0x40) = top row, bit0 = bottom row — matches original Font.h.

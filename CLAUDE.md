@@ -4,7 +4,7 @@
 
 A faithful port of Nick Hall's Pong Clock (v7.5) to the ESP32 CYD (Cheap Yellow Display). The original ran on an Arduino driving two Sure Electronics 2416 LED panels (combined 48×16 LEDs). This version emulates a 48×32 virtual LED matrix (double-height, two stacked panels) on the ILI9341 320×240 TFT — each virtual LED is a 6×6 rounded rectangle in amber, giving a retro LED panel aesthetic.
 
-Clock modes: **Slide** (digits slide in/out, date permanently below), **Pong** (game score = time, date permanently at bottom), **Digits** (large 10×14 font), **Word Clock** (time in words, date on third line). Mode switching via touchscreen. Time from NTP via WiFi. Animated splash screen on boot.
+Clock modes: **Slide** (digits slide in/out, date permanently below), **Pong** (game score = time, date permanently at bottom), **Digits** (large 10×14 font), **Word Clock** (time in words, date on third line), **Invaders** (space invaders scroll left↔right, time shown above — ported from Richard Shipman's PongClock v2.40, https://github.com/RichardShipman/PongClock). Mode switching via touchscreen. Time from NTP via WiFi. Animated splash screen on boot.
 
 HTTP web server (port 80, `src/web.cpp`): serves a two-tab SPA from LittleFS (`data/`) — **Clock tab** runs all four clock modes live in the browser as a pixel-exact JavaScript reimplementation on an HTML5 canvas inside a CSS CYD device mockup; **Config tab** exposes all runtime settings (mode, brightness, 12/24h, LED colours, timezone, NTP server, date interval, LDR). Full API: `GET /screenshot.bmp` streams the sprite buffer as a 24-bit BMP (288×192, RGB332→BGR888); `GET /api/info` returns JSON (firmware, mode, brightness, uptime, heap, IP); `GET/POST /api/config` reads and applies partial JSON config patches, persisting all changes to NVS; `POST /api/wifi-reset` erases WiFiManager credentials and restarts into AP mode. Server is skipped silently if WiFi is offline.
 
@@ -39,7 +39,7 @@ Touch CS: GPIO 33 (separate VSPI bus from display).
 ```
 data/                        ← LittleFS web assets (pio run -t uploadfs)
   index.html                 — SPA: Clock tab (CYD mockup + canvas) + Config tab
-  clock.js                   — JS port of all 4 modes + fonts; async/await timing
+  clock.js                   — JS port of all 5 modes + fonts; async/await timing
   style.css                  — CYD PCB mockup CSS; canvas 288×192 scaled 1.5× via CSS
 src/
   main.cpp      — setup(), loop(), initDisplay/WiFi/Time/Web; loads NVS config at boot
@@ -53,7 +53,7 @@ include/
   display.h     — plot/cls/fade/setLedColours declarations, extern tft + sprite
   clock.h       — clock mode declarations
   web.h         — initWeb(), webLoop() declarations
-  fonts.h       — myfont(5×7), mybigfont(10×14), mytinyfont(3×5) in PROGMEM
+  fonts.h       — myfont(5×7), mybigfont(10×14), mytinyfont(3×5) in PROGMEM; invader_sprites[3][2][2][5] (Richard Shipman)
   debug.h       — leveled debug macros
   secrets.h     — WiFi credentials (gitignored)
 ```

@@ -27,8 +27,9 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 ## [0.6.0] 2026-03-29
 
 ### Added
-- **Invaders mode** (mode 4) — faithful port of Richard Shipman's space invader mode
-  from Pong Clock v2.40. Three invader types (squid / crab / octopus) scroll across
+- **Invaders mode** (mode 4) — faithful port of Richard Shipman's Invaders mode
+  from PongClock v2.40 (https://github.com/RichardShipman/PongClock). Three invader
+  types (squid / crab / octopus) scroll across
   the display left-to-right then right-to-left with a two-frame wiggle animation.
   HH:MM shown in 5×7 font at top; date (tinyfont) permanently at bottom. Touch to
   switch mode works mid-scroll.

@@ -14,6 +14,8 @@ Original project: http://123led.wordpress.com/
 | **Slide** — digits slide on each tick       | **Pong** — AI game, score = HH:MM         |
 | ![Digits mode](Images/mode-digits.jpg)      | ![Word Clock mode](Images/mode-word.jpg)  |
 | **Digits** — large 10×14 font, HH:MM        | **Word Clock** — time in words + date     |
+| ![Invaders mode](Images/mode-invaders.jpg)  |                                           |
+| **Invaders** — scrolling space invaders, score = HH:MM | |
 
 ---
 
@@ -27,6 +29,8 @@ Open `http://<device-ip>/` in any browser. The WebUI runs all four clock modes l
 | **Slide** — browser clock, animated digits         | **Pong** — independent browser game             |
 | ![Digits WebUI](Images/webui-digits.jpg)           | ![Word Clock WebUI](Images/webui-word.jpg)       |
 | **Digits** — big font with flashing colon          | **Word Clock** — words + date                    |
+| ![Invaders WebUI](Images/webui-invaders.jpg)       |                                                  |
+| **Invaders** — scrolling sprites in browser        |                                                  |
 
 | ![Config UI](Images/webui-config.jpg) |
 |:-------------------------------------:|
@@ -38,7 +42,7 @@ Open `http://<device-ip>/` in any browser. The WebUI runs all four clock modes l
 
 | ![All modes demo](Images/modes-demo.gif) |
 |:----------------------------------------:|
-| **All four modes cycling** — Slide · Pong · Digits · Word Clock |
+| **All five modes cycling** — Slide · Pong · Digits · Word Clock · Invaders |
 
 ---
 
@@ -47,10 +51,10 @@ Open `http://<device-ip>/` in any browser. The WebUI runs all four clock modes l
 - NTP time sync via WiFi (ezTime — timezone + POSIX DST fallback in `config.h`)
 - WiFiManager captive portal for first-run credential entry
 - Animated splash screen on boot (typewriter reveal + CRT-collapse exit, ≈2.3 s)
-- Four clock modes with touch-to-switch; date always on screen
+- Five clock modes with touch-to-switch; date always on screen
 - Long-press anywhere for brightness cycle (4 levels); optional LDR auto-brightness
 - Retro amber LED look — 6×6 rounded pixel per virtual LED, 48×32 matrix
-- **Full browser WebUI** — all four clock modes reimplemented in JavaScript; runs independently in any browser at `http://<device-ip>/`
+- **Full browser WebUI** — all five clock modes reimplemented in JavaScript; runs independently in any browser at `http://<device-ip>/`
 - **Config WebUI** — timezone, brightness, LED colours, 12/24h, NTP server, date interval, LDR, WiFi reset; all settings persisted to NVS (survive reboot)
 
 ---
@@ -63,6 +67,9 @@ Open `http://<device-ip>/` in any browser. The WebUI runs all four clock modes l
 | 1 | **Pong**       | AI pong — score = HH / MM; date permanently at bottom of field        |
 | 2 | **Digits**     | Large 10×14 font — HH:MM with flashing colon                          |
 | 3 | **Word Clock** | Time in words + date (e.g. "TWENTY PAST / FIVE / WED 18 MAR")        |
+| 4 | **Invaders**   | Space invaders scroll left↔right; time shown HH:MM above the field   |
+
+Invaders mode ported from **Richard Shipman's** PongClock v2.40 — https://github.com/RichardShipman/PongClock
 
 Clock starts in the last-saved mode (default: **Slide** on first boot).
 
@@ -112,7 +119,7 @@ When WiFi is connected a web server starts on port 80. Open `http://<device-ip>/
 
 | Field           | Type    | Description                                    |
 |:----------------|:--------|:-----------------------------------------------|
-| `mode`          | int     | 0=Slide 1=Pong 2=Digits 3=WordClock            |
+| `mode`          | int     | 0=Slide 1=Pong 2=Digits 3=WordClock 4=Invaders |
 | `brightness`    | int     | Backlight PWM 0–255                            |
 | `ampm`          | bool    | false=24h true=12h                             |
 | `ledOnR/G/B`    | int     | LED-on colour (default amber 255/140/0)        |
@@ -214,11 +221,12 @@ All compile-time constants are in [`include/config.h`](include/config.h). These 
 
 #### Animation
 
-| Constant          | Default | Purpose                             |
-|:------------------|:--------|:------------------------------------|
-| `SLIDE_DELAY`     | `20`    | ms per frame in Slide animation     |
-| `PONG_BALL_DELAY` | `20`    | ms per frame in Pong mode           |
-| `FADE_DELAY`      | `25`    | ms per step in mode-transition fade |
+| Constant               | Default | Purpose                              |
+|:-----------------------|:--------|:-------------------------------------|
+| `SLIDE_DELAY`          | `20`    | ms per frame in Slide animation      |
+| `PONG_BALL_DELAY`      | `20`    | ms per frame in Pong mode            |
+| `FADE_DELAY`           | `25`    | ms per step in mode-transition fade  |
+| `INVADER_SCROLL_DELAY` | `100`   | ms per step in Invaders scroll       |
 
 #### Touch Calibration
 
@@ -258,7 +266,8 @@ Disabled by default (`LDR_ENABLED=0`). Enable via WebUI Config tab or by setting
 | `DEBUG_SLIDE_TIME`  | `1`     | Print `[Slide] HH:MM:SS` on each tick        |
 | `DEBUG_DIGITS_TIME` | `1`     | Print `[Digits] HH:MM` on each minute        |
 | `DEBUG_PONG_TIME`   | `1`     | Print `[Pong] HH:MM:SS` on each rally        |
-| `DEBUG_WORD_TIME`   | `1`     | Print `[Word] HH:MM` on each minute          |
+| `DEBUG_WORD_TIME`      | `1`     | Print `[Word] HH:MM` on each minute          |
+| `DEBUG_INVADER_TIME`   | `1`     | Print `[Invaders] HH:MM` on each minute      |
 
 ---
 
@@ -295,7 +304,7 @@ CYD_PongClock/
 ├── CLAUDE.md
 ├── data/                        ← LittleFS web assets (pio run -t uploadfs)
 │   ├── index.html               — SPA: Clock tab + Config tab
-│   ├── clock.js                 — JS clock engine (all 4 modes + fonts)
+│   ├── clock.js                 — JS clock engine (all 5 modes + fonts)
 │   └── style.css                — CYD mockup + UI styling
 ├── include/
 │   ├── config.h                 — compile-time defaults
@@ -303,7 +312,7 @@ CYD_PongClock/
 │   ├── display.h
 │   ├── clock.h
 │   ├── web.h
-│   ├── fonts.h                  — PROGMEM font data (5×7, 10×14, 3×5)
+│   ├── fonts.h                  — PROGMEM font data (5×7, 10×14, 3×5) + invader sprites
 │   └── debug.h
 ├── src/
 │   ├── main.cpp
@@ -329,5 +338,6 @@ CYD_PongClock/
 
 - Original Pong Clock by **Nick Hall** — http://123led.wordpress.com/
 - Modifications by **Brett Oliver** (v7.x) — https://www.brettoliver.org.uk/Pong_Clock/Pong_Clock.htm
+- **Invaders mode** by **Richard Shipman** — https://github.com/RichardShipman/PongClock
 - CYD port using [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) by Bodmer
 - CYD port and WebUI by **Anthony Clarke** — https://github.com/anthonyjclarke/CYD_PongClock
