@@ -933,10 +933,11 @@ static bool invader_scroll(byte ypos, int xstart, int xend, byte type) {
     wiggle = !wiggle;
     pushMatrix();
 
-    // Delay with touch polling — allows mode switch mid-scroll
+    // Delay with touch + web polling — allows mode switch and screenshot mid-scroll
     uint32_t t0 = millis();
     while (millis() - t0 < INVADER_SCROLL_DELAY) {
       run_mode();
+      webLoop();
       int8_t tap = checkTap();
       if (tap != 0) {
         clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
