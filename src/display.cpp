@@ -92,6 +92,13 @@ void fade_up() {
   ledcWrite(0, currentBrightness);
 }
 
+void setLedColours(uint8_t onR, uint8_t onG, uint8_t onB,
+                   uint8_t offR, uint8_t offG, uint8_t offB) {
+  colourOn  = tft.color565(onR, onG, onB);
+  colourOff = tft.color565(offR, offG, offB);
+  // Mode loop will call cls()/plot() naturally on its next frame; no immediate redraw needed.
+}
+
 void updateBrightness() {
 #if LDR_ENABLED
   static uint16_t buf[LDR_SAMPLES] = {};

@@ -11,7 +11,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Audit `mybigfont` 10×14 digits — check `1` and `7` proportions visually on device
 
 ### Next to do
-- WebUI configuration (timezone, WiFi, debug level, mode)
+- ESP32 display: immediate mode-switch when mode changed via WebUI (currently takes effect on next touch or restart)
 
 ### Phase 4 — Timer mode
 - Countdown timer as 5th clock mode (`NUM_MODES` → 5)
@@ -23,6 +23,36 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Requires Phase 3 display rows to show alongside time
 - Display in Slide mode row 3 or dedicated mode
 
+
+## [0.5.0] 2026-03-28
+
+### Added
+- **Full browser clock** (`data/`) — JavaScript reimplementation of all 4 clock modes
+  (Slide, Pong, Digits, Word Clock) running live in the browser. Pixel-exact port of
+  all font data and mode logic from C++. Renders on an HTML5 canvas inside a CSS CYD
+  device mockup at 1.5× scale. Served from LittleFS.
+- **Config WebUI** (`data/index.html`) — two-tab SPA:
+  - **Clock tab**: animated CYD mockup with mode-selector pills
+  - **Config tab**: form for all runtime settings (mode, brightness, 12/24h, LED on/off
+    colour pickers, timezone with IANA autocomplete datalist, NTP server, date display
+    interval, LDR auto-brightness toggle, WiFi reset)
+- **`GET /api/config`** — returns all runtime settings as JSON
+- **`POST /api/config`** — applies partial JSON patch; persists to NVS; applies
+  brightness, colour, ampm, mode and timezone changes to the live ESP32 display
+- **`POST /api/wifi-reset`** — erases WiFiManager credentials and restarts into AP mode
+- **`src/config_nvs.cpp` / `include/config_nvs.h`** — NVS persistence via Preferences for
+  all runtime config (mode, brightness, ampm, LED colours, timezone, NTP server,
+  date interval, LDR enable); loaded at boot and applied before display init
+- **`display.setLedColours()`** — runtime LED colour update without restart
+- LittleFS filesystem mount in `initWeb()` (`board_build.filesystem = littlefs`)
+- ArduinoJson v6 added to `lib_deps` for config POST body parsing
+- Footer on all WebUI pages: Anthony Clarke · @anthonyjclarke.bsky.social · GitHub
+
+### Changed
+- `src/main.cpp`: calls `loadConfig()` at boot; applies persisted brightness, colours,
+  `clock_mode`, and `ampm` before `showSplash()`
+- `src/web.cpp`: replaced inline HTML with LittleFS file serving; added new API routes;
+  kept `/screenshot.bmp` and `/api/info` unchanged
 
 ## [0.4.0] 2026-03-28
 

@@ -4,6 +4,7 @@
 #include <WiFiManager.h>
 #include <ezTime.h>
 #include "config.h"
+#include "config_nvs.h"
 #include "debug.h"
 #include "display.h"
 #include "clock.h"
@@ -132,7 +133,20 @@ void setup() {
   Serial.begin(115200);
   DBG_INFO("=== PongClock CYD starting ===");
 
+  // Load NVS config first — values used during display/clock init below
+  loadConfig();
+
   initDisplay();
+
+  // Apply persisted brightness and LED colours (initDisplay sets BRIGHTNESS_DEFAULT)
+  setBrightness(rtCfg.brightness);
+  setLedColours(rtCfg.ledOnR, rtCfg.ledOnG, rtCfg.ledOnB,
+                rtCfg.ledOffR, rtCfg.ledOffG, rtCfg.ledOffB);
+
+  // Apply persisted clock state
+  clock_mode = rtCfg.clockMode;
+  ampm       = rtCfg.ampm;
+
   showSplash();
   initTouch();
   initWiFi();

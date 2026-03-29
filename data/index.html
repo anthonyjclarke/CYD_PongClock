@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PongClock</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header>
+  <h1>Pong Clock</h1>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="clock">Clock</button>
+    <button class="tab-btn"        data-tab="config">Config</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ── Clock tab ──────────────────────────────────────────────────────── -->
+  <section id="tab-clock" class="tab-panel active">
+
+    <div class="pcb">
+      <div class="pcb-id">ESP32-2432S028R &nbsp;&middot;&nbsp; ILI9341 320&times;240</div>
+      <div class="bezel">
+        <div class="screen">
+          <canvas id="ledCanvas" width="288" height="192"></canvas>
+        </div>
+      </div>
+      <div class="pcb-btm">
+        <div class="usb"></div>
+        <div class="chips">
+          <div class="chip"></div>
+          <div class="chip"></div>
+          <div class="chip"></div>
+        </div>
+        <div class="btn"></div>
+      </div>
+    </div>
+
+    <!-- Mode selector pills -->
+    <div class="mode-bar">
+      <button class="mode-pill" data-mode="slide">Slide</button>
+      <button class="mode-pill" data-mode="pong">Pong</button>
+      <button class="mode-pill" data-mode="digits">Digits</button>
+      <button class="mode-pill" data-mode="word">Word Clock</button>
+    </div>
+
+  </section>
+
+  <!-- ── Config tab ─────────────────────────────────────────────────────── -->
+  <section id="tab-config" class="tab-panel">
+
+    <form id="config-form" class="config-form">
+
+      <!-- Clock mode -->
+      <div class="form-section">
+        <p class="form-section-title">Clock Mode</p>
+        <div class="form-rows">
+          <div class="form-row">
+            <label>Mode</label>
+            <div class="toggle-wrap">
+              <label><input type="radio" name="mode" value="0"> Slide</label>
+              <label><input type="radio" name="mode" value="1"> Pong</label>
+              <label><input type="radio" name="mode" value="2"> Digits</label>
+              <label><input type="radio" name="mode" value="3"> Word Clock</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Time format</label>
+            <div class="toggle-wrap">
+              <label><input type="checkbox" id="cfg-ampm"> 12-hour (AM/PM)</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Date interval</label>
+            <input type="number" id="cfg-date-interval" min="1" max="60" value="10">
+            <span style="font-size:11px;color:#666">min</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Display -->
+      <div class="form-section">
+        <p class="form-section-title">Display</p>
+        <div class="form-rows">
+          <div class="form-row">
+            <label>Brightness</label>
+            <input type="range" id="cfg-brightness" min="15" max="255" value="180">
+            <span class="range-val" id="cfg-brightness-val">180</span>
+          </div>
+          <div class="form-row">
+            <label>LED on colour</label>
+            <input type="color" id="cfg-led-on" value="#ff8c00">
+            <span style="font-size:10px;color:#555">amber</span>
+          </div>
+          <div class="form-row">
+            <label>LED off colour</label>
+            <input type="color" id="cfg-led-off" value="#140800">
+            <span style="font-size:10px;color:#555">dark amber</span>
+          </div>
+          <div class="form-row">
+            <label>Auto-brightness</label>
+            <div class="toggle-wrap">
+              <label><input type="checkbox" id="cfg-ldr"> LDR sensor</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time & Network -->
+      <div class="form-section">
+        <p class="form-section-title">Time &amp; Network</p>
+        <div class="form-rows">
+          <div class="form-row">
+            <label>Timezone</label>
+            <input type="text" id="cfg-timezone" list="tz-list"
+                   value="Australia/Sydney" autocomplete="off">
+            <datalist id="tz-list"></datalist>
+          </div>
+          <div class="form-row">
+            <label>NTP server</label>
+            <input type="text" id="cfg-ntp" value="pool.ntp.org">
+          </div>
+        </div>
+      </div>
+
+      <!-- WiFi -->
+      <div class="form-section">
+        <p class="form-section-title">WiFi</p>
+        <div class="form-rows">
+          <div class="form-row">
+            <label>Credentials</label>
+            <button type="button" id="btn-wifi-reset" class="btn-danger">
+              Reset WiFi &amp; Restart
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="btn-row">
+        <button type="submit" class="btn-save">Save Settings</button>
+        <a href="/api/info" target="_blank" class="btn-secondary"
+           style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 22px;">
+          API Info
+        </a>
+        <a href="/screenshot.bmp" download class="btn-secondary"
+           style="text-decoration:none;display:inline-flex;align-items:center;padding:8px 22px;">
+          Screenshot
+        </a>
+      </div>
+
+      <div id="status-msg"></div>
+
+    </form>
+
+  </section>
+
+</main>
+
+<footer>
+  Anthony Clarke
+  &nbsp;&middot;&nbsp;
+  <a href="https://bsky.app/profile/anthonyjclarke.bsky.social" target="_blank">
+    @anthonyjclarke.bsky.social
+  </a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/anthonyjclarke/CYD_PongClock" target="_blank">
+    CYD_PongClock on GitHub
+  </a>
+</footer>
+
+<script src="/clock.js"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@ A faithful port of Nick Hall's Pong Clock (v7.5) to the ESP32 CYD (Cheap Yellow 
 
 Clock modes: **Slide** (digits slide in/out, date permanently below), **Pong** (game score = time, date permanently at bottom), **Digits** (large 10×14 font), **Word Clock** (time in words, date on third line). Mode switching via touchscreen. Time from NTP via WiFi. Animated splash screen on boot.
 
-HTTP web server (port 80, `src/web.cpp`): `GET /` returns a CSS CYD hardware mockup page with the live display screenshot auto-refreshing every 2 s; `GET /screenshot.bmp` streams the sprite buffer as a 24-bit BMP (288×192, RGB332→BGR888); `GET /api/info` returns JSON with mode, brightness, uptime, heap, IP. Foundation for future WebUI — all configuration will be added here. Server is skipped silently if WiFi is offline.
+HTTP web server (port 80, `src/web.cpp`): serves a two-tab SPA from LittleFS (`data/`) — **Clock tab** runs all four clock modes live in the browser as a pixel-exact JavaScript reimplementation on an HTML5 canvas inside a CSS CYD device mockup; **Config tab** exposes all runtime settings (mode, brightness, 12/24h, LED colours, timezone, NTP server, date interval, LDR). Full API: `GET /screenshot.bmp` streams the sprite buffer as a 24-bit BMP (288×192, RGB332→BGR888); `GET /api/info` returns JSON (firmware, mode, brightness, uptime, heap, IP); `GET/POST /api/config` reads and applies partial JSON config patches, persisting all changes to NVS; `POST /api/wifi-reset` erases WiFiManager credentials and restarts into AP mode. Server is skipped silently if WiFi is offline.
 
 ## Hardware
 
@@ -37,14 +37,20 @@ Touch CS: GPIO 33 (separate VSPI bus from display).
 ## Architecture
 
 ```
+data/                        ← LittleFS web assets (pio run -t uploadfs)
+  index.html                 — SPA: Clock tab (CYD mockup + canvas) + Config tab
+  clock.js                   — JS port of all 4 modes + fonts; async/await timing
+  style.css                  — CYD PCB mockup CSS; canvas 288×192 scaled 1.5× via CSS
 src/
-  main.cpp      — setup(), loop(), initDisplay/WiFi/Time/Web
-  display.cpp   — plot(), cls(), fade_down/up, sprite management
+  main.cpp      — setup(), loop(), initDisplay/WiFi/Time/Web; loads NVS config at boot
+  display.cpp   — plot(), cls(), fade_down/up, setLedColours(), sprite management
   clock.cpp     — all clock modes + font rendering + touch
-  web.cpp       — WebServer routes: /, /screenshot.bmp, /api/info
+  web.cpp       — WebServer: LittleFS file serve, /api/info, /api/config, /api/wifi-reset
+  config_nvs.cpp — NVS persistence (Preferences namespace "pclock")
 include/
-  config.h      — all tuneable constants (incl. WEB_SERVER_PORT)
-  display.h     — plot/cls/fade declarations, extern tft + sprite
+  config.h      — compile-time defaults (WEB_SERVER_PORT, colours, timing, etc.)
+  config_nvs.h  — RuntimeConfig struct + loadConfig()/saveConfig()/resetConfigToDefaults()
+  display.h     — plot/cls/fade/setLedColours declarations, extern tft + sprite
   clock.h       — clock mode declarations
   web.h         — initWeb(), webLoop() declarations
   fonts.h       — myfont(5×7), mybigfont(10×14), mytinyfont(3×5) in PROGMEM
@@ -53,6 +59,10 @@ include/
 ```
 
 Rendering uses a full-matrix `TFT_eSprite` (288×192px, 8-bit depth). `plot()` writes into the sprite; the sprite is pushed to screen at the end of each logical update via `pushSprite()`. This eliminates per-pixel SPI calls and prevents flicker on slide animations. TFT_eSPI auto-expands RGB332→RGB565 on push — visually transparent with only two amber tones in use.
+
+Runtime config is stored in NVS (Preferences namespace `"pclock"`) and loaded at boot before `initDisplay()` so brightness, colours, clock mode, and ampm are applied from the first frame. The `RuntimeConfig` struct (`config_nvs.h`) holds all settings; `saveConfig()` is called by the web handler on every POST to `/api/config`.
+
+**Two-step flash required:** `pio run -t upload` (firmware) + `pio run -t uploadfs` (LittleFS web assets). The `uploadfs` step is only needed when files in `data/` change.
 
 ## Touch Input
 
@@ -67,12 +77,16 @@ Screen split into left/right halves at `TOUCH_X_MID`. Single tap left half → p
 - `mybigfont` is 10 wide × 14 tall, stored as 20 bytes per glyph (2 rows of 8-bit column data per column pair). See `ht1632_putbigchar()` for decode logic.
 - Sprite must use `setColorDepth(8)` before `createSprite()` — 16-bit at 288×192 requires 110KB contiguous heap which the ESP32 cannot satisfy without PSRAM. 8-bit = 55KB, fits comfortably.
 - `myTZ.setLocation("Australia/Sydney")` makes an HTTP call to timezoneapi.io which reliably fails immediately after WiFi connect. Always set `NTP_POSIX_FALLBACK` and call `myTZ.setPosix()` as fallback — it is offline and DST-correct.
+- `web.cpp` must use `fs::File` (namespace-qualified) when opening LittleFS files — TFT_eSPI headers pull in a conflicting unqualified `File` symbol. Unqualified `File` will not compile.
+- Changing clock mode via WebUI saves to NVS and switches the browser clock immediately, but the physical CYD display only switches on the next touch or restart. This is a known limitation (see CHANGELOG.md To Do).
 
 ## Flashing Notes
 
 - Port: `/dev/cu.usbserial-*` (CP2102)
 - Upload speed: 230400 (921600 can fail on some cables)
-- After flash: check Serial for `Display initialised 320x240`, `WiFi connected`, and `Web server started — http://…` then verify clock shows on screen within ~10 s of NTP sync.
+- First flash requires two steps: `pio run -t upload` then `pio run -t uploadfs`
+- After flash: check Serial for `Display initialised 320x240`, `WiFi connected`, `LittleFS mounted`, and `Web server started — http://…` then verify clock shows on screen within ~10 s of NTP sync.
+- Open `http://<device-ip>/` in a browser to confirm the WebUI loads and the live clock canvas is animating.
 
 ## Rules
 
