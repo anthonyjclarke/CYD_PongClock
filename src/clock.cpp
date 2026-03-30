@@ -447,6 +447,19 @@ void slide() {
       return;
     }
 
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      for (byte i = 0; i < 6; i++) {
+        char ch[2]; itoa(digits_old[i], ch, 10);
+        if (ampm && i == 5 && digits_old[5] == 0) ch[0] = ' ';
+        putChar(xpos[i], TIME_Y, ch[0]);
+      }
+      putChar(12, TIME_Y, ':');
+      putChar(30, TIME_Y, ':');
+      drawDateRow(DATE_Y);
+      pushMatrix();
+    }
+
     get_time();
     // Date is permanently visible on row 2 — no periodic full-screen interruption needed
 
@@ -589,6 +602,12 @@ void pong() {
     if (tap != 0) {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down(); return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      bat1_upd = bat2_upd = 1;
+      restart = 1;
     }
 
     if (restart) {
@@ -770,6 +789,12 @@ void digits() {
       fade_down(); return;
     }
 
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      mins = 100;
+      secs = 100;
+    }
+
     get_time();
     check_show_date();
 
@@ -841,6 +866,11 @@ void word_clock() {
     if (tap != 0) {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down(); return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      old_mins = 100;
     }
 
     get_time();
@@ -989,6 +1019,11 @@ void invaders() {
     if (tap != 0) {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down(); return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      prev_mins = 255;
     }
 
     get_time();

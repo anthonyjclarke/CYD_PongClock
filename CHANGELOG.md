@@ -24,6 +24,18 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Display in Slide mode row 3 or dedicated mode
 
 
+## [0.7.1] 2026-03-31
+
+### Added
+- **WebUI logo header** — Atari Pong® logo bitmap (`pong-logo.png`, served from LittleFS) centred in the page header; "Clock" appended in Fredoka One (Google Fonts CDN) sized to match the PONG® cap-height. CSS `filter: invert(1)` + `mix-blend-mode: screen` renders clean white marks on the dark UI with no visible background rectangle. Fully responsive (scales on mobile).
+- **Config change summary in debug log** — `handleConfigPost()` snapshots all `rtCfg` fields before applying changes and emits a single `DBG_INFO` line listing only what changed with old→new values (e.g. `mode Slide→Pong  ledOn #FF8C00→#00FF00`). Silent if nothing changed. Active at `DEBUG_LEVEL >= 3`.
+- **Generic LittleFS file serving** — `handleNotFound()` now checks LittleFS before returning 404 and serves any matched file with MIME type derived from extension. Any asset added to `data/` is automatically served — no per-file handler registration required.
+
+### Fixed
+- **LED colour change full refresh** — changing on/off colours via WebUI now immediately repaints the entire display. `setLedColours()` calls `cls()` + `pushMatrix()` to flush off-state pixels at once and sets a `ledColourChanged` flag; each mode loop detects the flag on its next iteration and resets its time-tracking sentinel to force a full repaint of on-state pixels (Slide redraws all digits; Pong triggers restart; Digits/WordClock/Invaders invalidate their minute cache).
+
+---
+
 ## [0.7.0] 2026-03-30
 
 ### Added

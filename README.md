@@ -21,12 +21,12 @@ Original project: http://123led.wordpress.com/
 
 ## Gallery — WebUI
 
-Open `http://<device-ip>/` in any browser. The WebUI runs all four clock modes live in JavaScript — pixel-exact amber LED rendering on a CSS CYD device mockup. No plugins or app required.
+Open `http://<device-ip>/` in any browser. The WebUI runs all five clock modes live in JavaScript — pixel-exact amber LED rendering on a CSS CYD device mockup. No plugins or app required. The header shows the Atari Pong® logo with "Clock" appended in matching style.
 
 |                                                    |                                                  |
 |:--------------------------------------------------:|:------------------------------------------------:|
 | ![Slide WebUI](Images/webui-slide.jpg)             | ![Pong WebUI](Images/webui-pong.jpg)             |
-| **Slide** — browser clock, animated digits         | **Pong** — independent browser game             |
+| **Slide** — browser clock, animated digits         | **Pong** — independent browser game              |
 | ![Digits WebUI](Images/webui-digits.jpg)           | ![Word Clock WebUI](Images/webui-word.jpg)       |
 | **Digits** — big font with flashing colon          | **Word Clock** — words + date                    |
 | ![Invaders WebUI](Images/webui-invaders.jpg)       |                                                  |
@@ -133,7 +133,7 @@ Example `/api/info` response:
 
 ```json
 {
-  "firmware": "0.5",
+  "firmware": "0.7.1",
   "mode": 1,
   "modeName": "Pong",
   "brightness": 180,
@@ -305,7 +305,8 @@ CYD_PongClock/
 ├── data/                        ← LittleFS web assets (pio run -t uploadfs)
 │   ├── index.html               — SPA: Clock tab + Config tab
 │   ├── clock.js                 — JS clock engine (all 5 modes + fonts)
-│   └── style.css                — CYD mockup + UI styling
+│   ├── style.css                — CYD mockup + UI styling
+│   └── pong-logo.png            — Atari Pong® logo bitmap (served as /pong-logo.png)
 ├── include/
 │   ├── config.h                 — compile-time defaults
 │   ├── config_nvs.h             — RuntimeConfig struct + NVS API
@@ -325,11 +326,12 @@ CYD_PongClock/
     ├── mode-pong.jpg
     ├── mode-digits.jpg
     ├── mode-word.jpg
-    ├── webui-slide.svg           ← placeholder — replace with browser screenshot
-    ├── webui-pong.svg            ← placeholder — replace with browser screenshot
-    ├── webui-digits.svg          ← placeholder — replace with browser screenshot
-    ├── webui-word.svg            ← placeholder — replace with browser screenshot
-    └── webui-config.svg          ← placeholder — replace with browser screenshot
+    ├── webui-slide.jpg
+    ├── webui-pong.jpg
+    ├── webui-digits.jpg
+    ├── webui-word.jpg
+    ├── webui-invaders.jpg
+    └── webui-config.jpg
 ```
 
 ---

@@ -6,7 +6,7 @@ A faithful port of Nick Hall's Pong Clock (v7.5) to the ESP32 CYD (Cheap Yellow 
 
 Clock modes: **Slide** (digits slide in/out, date permanently below), **Pong** (game score = time, date permanently at bottom), **Digits** (large 10×14 font), **Word Clock** (time in words, date on third line), **Invaders** (space invaders scroll left↔right, time shown above — ported from Richard Shipman's PongClock v2.40, https://github.com/RichardShipman/PongClock). Mode switching via touchscreen. Time from NTP via WiFi. Animated splash screen on boot.
 
-HTTP web server (port 80, `src/web.cpp`): serves a two-tab SPA from LittleFS (`data/`) — **Clock tab** runs all four clock modes live in the browser as a pixel-exact JavaScript reimplementation on an HTML5 canvas inside a CSS CYD device mockup; **Config tab** exposes all runtime settings (mode, brightness, 12/24h, LED colours, timezone, NTP server, date interval, LDR). Full API: `GET /screenshot.bmp` streams the sprite buffer as a 24-bit BMP (288×192, RGB332→BGR888); `GET /api/info` returns JSON (firmware, mode, brightness, uptime, heap, IP); `GET/POST /api/config` reads and applies partial JSON config patches, persisting all changes to NVS; `POST /api/wifi-reset` erases WiFiManager credentials and restarts into AP mode. Server is skipped silently if WiFi is offline.
+HTTP web server (port 80, `src/web.cpp`): serves a two-tab SPA from LittleFS (`data/`) — **Clock tab** runs all five clock modes live in the browser as a pixel-exact JavaScript reimplementation on an HTML5 canvas inside a CSS CYD device mockup; **Config tab** exposes all runtime settings (mode, brightness, 12/24h, LED colours, timezone, NTP server, date interval, LDR). Full API: `GET /screenshot.bmp` streams the sprite buffer as a 24-bit BMP (288×192, RGB332→BGR888); `GET /api/info` returns JSON (firmware, mode, brightness, uptime, heap, IP); `GET/POST /api/config` reads and applies partial JSON config patches, persisting all changes to NVS; `POST /api/wifi-reset` erases WiFiManager credentials and restarts into AP mode. `handleNotFound()` serves any file present in LittleFS (MIME type auto-detected by extension), so any asset added to `data/` is automatically available with no handler registration. Server is skipped silently if WiFi is offline.
 
 ## Hardware
 
@@ -41,11 +41,12 @@ data/                        ← LittleFS web assets (pio run -t uploadfs)
   index.html                 — SPA: Clock tab (CYD mockup + canvas) + Config tab
   clock.js                   — JS port of all 5 modes + fonts; async/await timing
   style.css                  — CYD PCB mockup CSS; canvas 288×192 scaled 1.5× via CSS
+  pong-logo.png              — Atari Pong® logo bitmap; served as /pong-logo.png
 src/
   main.cpp      — setup(), loop(), initDisplay/WiFi/Time/Web; loads NVS config at boot
-  display.cpp   — plot(), cls(), fade_down/up, setLedColours(), sprite management
+  display.cpp   — plot(), cls(), fade_down/up, setLedColours(), sprite management; ledColourChanged flag
   clock.cpp     — all clock modes + font rendering + touch
-  web.cpp       — WebServer: LittleFS file serve, /api/info, /api/config, /api/wifi-reset
+  web.cpp       — WebServer: generic LittleFS fallback (mimeFor()), /api/info, /api/config, /api/wifi-reset; config change summary log
   config_nvs.cpp — NVS persistence (Preferences namespace "pclock")
 include/
   config.h      — compile-time defaults (WEB_SERVER_PORT, colours, timing, etc.)
@@ -79,6 +80,8 @@ Screen split into left/right halves at `TOUCH_X_MID`. Single tap left half → p
 - `myTZ.setLocation("Australia/Sydney")` makes an HTTP call to timezoneapi.io which reliably fails immediately after WiFi connect. Always set `NTP_POSIX_FALLBACK` and call `myTZ.setPosix()` as fallback — it is offline and DST-correct.
 - `web.cpp` must use `fs::File` (namespace-qualified) when opening LittleFS files — TFT_eSPI headers pull in a conflicting unqualified `File` symbol. Unqualified `File` will not compile.
 - Changing clock mode via WebUI saves to NVS and switches the browser clock immediately, but the physical CYD display only switches on the next touch or restart. This is a known limitation (see CHANGELOG.md To Do).
+- `ledColourChanged` (bool, `display.cpp`) is set by `setLedColours()` after a WebUI colour change. Each mode loop checks it on the next iteration, resets to `false`, then forces a full repaint of on-state pixels (Slide redraws all digits; Pong triggers restart; Digits/Word/Invaders invalidate their minute-cache sentinel). The off-state pixels are handled immediately by `setLedColours()` itself via `cls()`+`pushMatrix()`.
+- `pong-logo.png` in `data/` must be a trimmed black-on-white PNG (no white padding). CSS `filter: invert(1)` + `mix-blend-mode: screen` renders it white-on-transparent on the dark UI. White padding in the source PNG produces a visible dark rectangle after inversion — trim with `convert -trim` (ImageMagick) before adding to `data/`.
 
 ## Flashing Notes
 
