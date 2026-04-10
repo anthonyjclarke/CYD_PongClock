@@ -96,25 +96,88 @@ static void showSplash() {
 }
 
 // ── Status line in bottom margin during init (never touches matrix sprite) ────
-static void showStatus(const char* msg) {
+static constexpr int16_t kFooterLineHeight = 16;
+static constexpr int16_t kStatusLineY      = 204;
+static constexpr int16_t kIpLineY          = 220;
+static constexpr uint16_t kBootInfoHoldMs  = 2500;
+
+static void showFooterLine(int16_t y, const char* msg) {
   tft.setTextColor(tft.color565(180, 100, 0), tft.color565(20, 8, 0));
   tft.setTextSize(1);
+  tft.fillRect(0, y, tft.width(), kFooterLineHeight, tft.color565(20, 8, 0));
   int16_t x = (tft.width() - (int16_t)(strlen(msg) * 6)) / 2;
-  tft.drawString(msg, x > 0 ? x : 0, 220, 2);
+  tft.drawString(msg, x > 0 ? x : 0, y, 2);
+}
+
+static void showStatus(const char* msg) {
+  showFooterLine(kStatusLineY, msg);
+}
+
+static void showIpAddress(const char* msg) {
+  showFooterLine(kIpLineY, msg);
+}
+
+static void drawTinyText(int16_t x, byte y, const char* msg) {
+  for (size_t i = 0; msg[i] != '\0'; i++) {
+    int16_t charX = x + (int16_t)i * 4;
+    if (charX > (LED_WIDTH - 1) || (charX + 2) < 0) continue;
+    putTinyChar((byte)charX, y, msg[i]);
+  }
+}
+
+static void showBootIpOnMatrix(const char* ip, uint16_t holdMs) {
+  const char title[] = "IP";
+  const int16_t titleWidth = (int16_t)strlen(title) * 6 - 1;
+  const int16_t ipWidth    = (int16_t)strlen(ip) * 4 - 1;
+  const byte titleY        = 6;
+  const byte ipY           = 20;
+
+  if (ipWidth <= LED_WIDTH) {
+    cls();
+    putChar((byte)((LED_WIDTH - titleWidth) / 2), titleY, 'I');
+    putChar((byte)((LED_WIDTH - titleWidth) / 2) + 6, titleY, 'P');
+    drawTinyText((LED_WIDTH - ipWidth) / 2, ipY, ip);
+    pushMatrix();
+    delay(holdMs);
+    return;
+  }
+
+  uint32_t deadline = millis() + holdMs;
+  while ((int32_t)(millis() - deadline) < 0) {
+    for (int16_t x = LED_WIDTH; x >= -ipWidth; x--) {
+      cls();
+      putChar((byte)((LED_WIDTH - titleWidth) / 2), titleY, 'I');
+      putChar((byte)((LED_WIDTH - titleWidth) / 2) + 6, titleY, 'P');
+      drawTinyText(x, ipY, ip);
+      pushMatrix();
+      delay(45);
+      if ((int32_t)(millis() - deadline) >= 0) return;
+    }
+  }
 }
 
 // ── WiFi init ─────────────────────────────────────────────────────────────────
 void initWiFi() {
   showStatus("Connecting WiFi...");
   WiFiManager wm;
-  wm.setConfigPortalTimeout(WIFI_TIMEOUT_S);
+  bool hasSavedWifi = WiFi.SSID().length() > 0;
+  wm.setConfigPortalTimeout(hasSavedWifi ? WIFI_TIMEOUT_S : 0);
+  DBG_INFO("WiFiManager portal timeout: %d s (%s credentials)",
+           hasSavedWifi ? WIFI_TIMEOUT_S : 0,
+           hasSavedWifi ? "saved" : "no saved");
 
   if (!wm.autoConnect(WIFI_AP_NAME)) {
     DBG_WARN("WiFi: connect timeout, continuing offline");
     showStatus("WiFi offline");
+    showIpAddress("");
   } else {
-    DBG_INFO("WiFi connected: %s", WiFi.localIP().toString().c_str());
+    String ip = WiFi.localIP().toString();
+    char ipBuf[24];
+    snprintf(ipBuf, sizeof(ipBuf), "IP %s", ip.c_str());
+    DBG_INFO("WiFi connected: %s", ip.c_str());
     showStatus("WiFi OK");
+    showIpAddress(ipBuf);
+    showBootIpOnMatrix(ip.c_str(), kBootInfoHoldMs);
   }
 }
 

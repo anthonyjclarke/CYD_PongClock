@@ -34,7 +34,7 @@ Open `http://<device-ip>/` in any browser. The WebUI runs all five clock modes l
 
 | ![Config UI](Images/webui-config.jpg) |
 |:-------------------------------------:|
-| **Config tab** — all settings, WiFi reset |
+| **Config tab** — display, time, network, WiFi reset |
 
 ---
 
@@ -49,13 +49,13 @@ Open `http://<device-ip>/` in any browser. The WebUI runs all five clock modes l
 ## Features
 
 - NTP time sync via WiFi (ezTime — timezone + POSIX DST fallback in `config.h`)
-- WiFiManager captive portal for first-run credential entry
-- Animated splash screen on boot (typewriter reveal + CRT-collapse exit, ≈2.3 s)
+- WiFiManager captive portal for first-run credential entry; no timeout until WiFi is configured
+- Animated splash screen on boot (typewriter reveal + CRT-collapse exit, ≈2.3 s), followed by matrix-rendered IP display on successful WiFi connect
 - Five clock modes with touch-to-switch; date always on screen
 - Long-press anywhere for brightness cycle (4 levels); optional LDR auto-brightness
 - Retro amber LED look — 6×6 rounded pixel per virtual LED, 48×32 matrix
-- **Full browser WebUI** — all five clock modes reimplemented in JavaScript; runs independently in any browser at `http://<device-ip>/`
-- **Config WebUI** — timezone, brightness, LED colours, 12/24h, NTP server, date interval, LDR, WiFi reset; all settings persisted to NVS (survive reboot)
+- **Full browser WebUI** — all five clock modes reimplemented in JavaScript; runs independently in any browser at `http://<device-ip>/`; Clock-tab mode pills switch both the browser preview and the physical TFT immediately
+- **Config WebUI** — brightness, LED colours, 12/24h, timezone, NTP server, date interval, LDR, WiFi reset; all settings persisted to NVS (survive reboot)
 
 ---
 
@@ -100,7 +100,7 @@ The touchscreen is divided into two halves:
 
 ## Web Interface
 
-When WiFi is connected a web server starts on port 80. Open `http://<device-ip>/` — the IP is printed to serial at boot.
+When WiFi is connected a web server starts on port 80. Open `http://<device-ip>/` — the IP is printed to serial at boot and also shown on the matrix immediately after the splash screen.
 
 ### Endpoints
 
@@ -180,14 +180,15 @@ pio device monitor --baud 115200
 ## First Boot
 
 1. Flash firmware (`pio run -t upload`) then web assets (`pio run -t uploadfs`).
-2. The screen shows **"Connecting WiFi..."** — a `CYD-PongClock` access point appears.
+2. The screen shows **"Connecting WiFi..."** — if no saved credentials exist, a `CYD-PongClock` access point appears and stays available until WiFi is configured.
 3. Connect your phone to `CYD-PongClock` and enter your WiFi credentials in the captive portal.
-4. Device reboots, connects, and shows **"Syncing NTP..."**.
-5. Once synced, the clock starts in the last-saved mode (Slide on first boot).
-6. The web server starts — IP is shown in serial (`[INFO] Web server started — http://…`).
-7. Open `http://<device-ip>/` in a browser for the WebUI.
+4. Device reboots, connects, and shows the IP address on the LED matrix after the splash screen.
+5. The device then shows **"Syncing NTP..."**.
+6. Once synced, the clock starts in the last-saved mode (Slide on first boot).
+7. The web server starts — IP is shown in serial (`[INFO] Web server started — http://…`).
+8. Open `http://<device-ip>/` in a browser for the WebUI.
 
-If WiFi times out (60 s) the clock continues offline; the web server is skipped.
+If saved WiFi credentials exist, failed reconnect attempts still time out after 60 s and the clock continues offline; the web server is skipped.
 
 ---
 
@@ -195,7 +196,7 @@ If WiFi times out (60 s) the clock continues offline; the web server is skipped.
 
 ### Via WebUI (recommended)
 
-Open `http://<device-ip>/` → **Config** tab. All settings are applied immediately and persisted to NVS (survive reboot). Changes to mode, brightness, and LED colours are reflected on the physical display on the next touch or restart.
+Open `http://<device-ip>/` → **Config** tab. All settings are applied immediately and persisted to NVS (survive reboot). Clock mode is changed from the **Clock** tab mode pills and switches the physical display immediately.
 
 ### Via `config.h` (compile-time defaults)
 

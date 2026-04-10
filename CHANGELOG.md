@@ -11,7 +11,17 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Audit `mybigfont` 10×14 digits — check `1` and `7` proportions visually on device
 
 ### Next to do
-- ESP32 display: immediate mode-switch when mode changed via WebUI (currently takes effect on next touch or restart)
+- Audit and prune now-redundant TFT footer boot-status code after the matrix IP boot display change
+
+## [0.7.2] 2026-04-11
+
+### Added
+- **Matrix IP boot display** — after the splash screen, a successful WiFi connection now shows the assigned IP address on the LED matrix using the existing `putChar()` / `putTinyChar()` font path rather than TFT text rendering. Short addresses are centred; longer addresses scroll for readability.
+- **First-run WiFiManager portal hold-open** — `initWiFi()` now checks whether a saved SSID exists and calls `setConfigPortalTimeout(0)` when none is present, so the captive portal remains available until credentials are entered on first boot or after a WiFi reset.
+
+### Changed
+- **WebUI Clock tab mode switching** — clicking a mode pill now changes the physical TFT immediately as well as the browser preview. Each firmware mode loop exits as soon as `clock_mode` no longer matches its active mode, so remote mode changes take effect without waiting for a touch event or restart.
+- **Config tab simplification** — redundant clock-mode radios removed from the Config tab. Clock selection now lives only on the Clock tab; Config retains time format, date interval, display, network, and WiFi settings.
 
 ### Phase 4 — Timer mode
 - Countdown timer as 5th clock mode (`NUM_MODES` → 5)
@@ -233,5 +243,4 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Replaced DS1307 RTC with NTP/ezTime
 - Replaced physical buttons with capacitive touch zones
 - Replaced raw `Serial.print` debug calls with leveled `DBG_*` macros
-
 
