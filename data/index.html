@@ -4,12 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PongClock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
 <header>
-  <h1>Pong Clock</h1>
+  <h1 class="site-logo" aria-label="Pong Clock">
+    <img src="/pong-logo.png" class="logo-img" alt="Pong®">
+    <span class="logo-clock">Clock</span>
+  </h1>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="clock">Clock</button>
     <button class="tab-btn"        data-tab="config">Config</button>
@@ -55,20 +60,9 @@
 
     <form id="config-form" class="config-form">
 
-      <!-- Clock mode -->
       <div class="form-section">
-        <p class="form-section-title">Clock Mode</p>
+        <p class="form-section-title">Clock</p>
         <div class="form-rows">
-          <div class="form-row">
-            <label>Mode</label>
-            <div class="toggle-wrap">
-              <label><input type="radio" name="mode" value="0"> Slide</label>
-              <label><input type="radio" name="mode" value="1"> Pong</label>
-              <label><input type="radio" name="mode" value="2"> Digits</label>
-              <label><input type="radio" name="mode" value="3"> Word Clock</label>
-              <label><input type="radio" name="mode" value="4"> Invaders</label>
-            </div>
-          </div>
           <div class="form-row">
             <label>Time format</label>
             <div class="toggle-wrap">

@@ -20,12 +20,37 @@ header {
   gap: 16px;
 }
 
-h1 {
-  font-size: 11px;
-  letter-spacing: 4px;
-  color: #c8a000;
+/* ── Pong logo header ───────────────────────────────────────────────────────── */
+h1.site-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin: 0;
-  text-transform: uppercase;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+}
+
+/* Black-on-white PNG: invert flips marks to white, screen blend dissolves the
+   inverted-white background into the page — logo appears white with no box. */
+.logo-img {
+  height: 64px;
+  width: auto;
+  display: block;
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
+/* Font size tuned so the cap-height of "Clock" matches the PONG® cap-height
+   in the trimmed PNG at 64 px display height (≈ 54 px cap = 74 px Fredoka). */
+.logo-clock {
+  font-family: 'Fredoka One', 'Arial Black', sans-serif;
+  font-size: 74px;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
 }
 
 .tabs {
@@ -327,4 +352,6 @@ footer a:hover { color: #c8a000; }
   .pcb         { padding: 10px 12px 16px; }
   .form-row    { flex-direction: column; align-items: flex-start; }
   .form-row label { width: auto; }
+  .logo-img    { height: 44px; }
+  .logo-clock  { font-size: 52px; }
 }

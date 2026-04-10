@@ -97,6 +97,10 @@ static int8_t checkTap() {
   return (touchDownX < TOUCH_X_MID) ? -1 : 1;
 }
 
+static bool keepRunningMode(byte expectedMode) {
+  return run_mode() && clock_mode == expectedMode;
+}
+
 // ── Font helpers (index mapping) ──────────────────────────────────────────────
 static byte charIndex5x7(char c) {
   if (c >= 'A' && c <= 'Z') return (byte)(c & 0x1F);
@@ -437,7 +441,7 @@ void slide() {
   byte old_secs = rtc[0];
   byte old_mins = rtc[1];
 
-  while (run_mode()) {
+  while (keepRunningMode(0)) {
     tickHousekeeping();
 
     int8_t tap = checkTap();
@@ -445,6 +449,19 @@ void slide() {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down();
       return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      for (byte i = 0; i < 6; i++) {
+        char ch[2]; itoa(digits_old[i], ch, 10);
+        if (ampm && i == 5 && digits_old[5] == 0) ch[0] = ' ';
+        putChar(xpos[i], TIME_Y, ch[0]);
+      }
+      putChar(12, TIME_Y, ':');
+      putChar(30, TIME_Y, ':');
+      drawDateRow(DATE_Y);
+      pushMatrix();
     }
 
     get_time();
@@ -582,13 +599,19 @@ void pong() {
 
   pong_setup();
 
-  while (run_mode()) {
+  while (keepRunningMode(1)) {
     tickHousekeeping();
 
     int8_t tap = checkTap();
     if (tap != 0) {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down(); return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      bat1_upd = bat2_upd = 1;
+      restart = 1;
     }
 
     if (restart) {
@@ -761,13 +784,19 @@ void digits() {
   set_next_date();
   cls(); pushMatrix();
 
-  while (run_mode()) {
+  while (keepRunningMode(2)) {
     tickHousekeeping();
 
     int8_t tap = checkTap();
     if (tap != 0) {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down(); return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      mins = 100;
+      secs = 100;
     }
 
     get_time();
@@ -834,13 +863,18 @@ void word_clock() {
   byte old_mins = 100;
   // Date is permanently displayed — no periodic full-screen interruption needed
 
-  while (run_mode()) {
+  while (keepRunningMode(3)) {
     tickHousekeeping();
 
     int8_t tap = checkTap();
     if (tap != 0) {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down(); return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      old_mins = 100;
     }
 
     get_time();
@@ -929,6 +963,7 @@ static bool invader_scroll(byte ypos, int xstart, int xend, byte type) {
   int   xstep  = (xstart < xend) ? 1 : -1;
 
   for (int i = xstart; i != xend; i += xstep) {
+    if (clock_mode != 4) return false;
     draw_invader(i, ypos, type, wiggle);
     wiggle = !wiggle;
     pushMatrix();
@@ -936,7 +971,7 @@ static bool invader_scroll(byte ypos, int xstart, int xend, byte type) {
     // Delay with touch + web polling — allows mode switch and screenshot mid-scroll
     uint32_t t0 = millis();
     while (millis() - t0 < INVADER_SCROLL_DELAY) {
-      run_mode();
+      if (clock_mode != 4 || !run_mode()) return false;
       webLoop();
       int8_t tap = checkTap();
       if (tap != 0) {
@@ -982,13 +1017,18 @@ void invaders() {
   DBG_INFO("Invaders mode entry: %02d:%02d  NTP status=%d",
            rtc[2], rtc[1], (int)timeStatus());
 
-  while (run_mode()) {
+  while (keepRunningMode(4)) {
     tickHousekeeping();
 
     int8_t tap = checkTap();
     if (tap != 0) {
       clock_mode = (clock_mode + NUM_MODES + tap) % NUM_MODES;
       fade_down(); return;
+    }
+
+    if (ledColourChanged) {
+      ledColourChanged = false;
+      prev_mins = 255;
     }
 
     get_time();

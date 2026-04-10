@@ -153,6 +153,15 @@ static void handleConfigPost() {
     return;
   }
 
+  // Snapshot current values so we can report exactly what changed
+  uint8_t prv_mode  = rtCfg.clockMode,  prv_bright = rtCfg.brightness;
+  bool    prv_ampm  = rtCfg.ampm,       prv_ldr    = rtCfg.ldrEnabled;
+  uint8_t prv_onR   = rtCfg.ledOnR,     prv_onG    = rtCfg.ledOnG,    prv_onB   = rtCfg.ledOnB;
+  uint8_t prv_offR  = rtCfg.ledOffR,    prv_offG   = rtCfg.ledOffG,   prv_offB  = rtCfg.ledOffB;
+  uint8_t prv_dint  = rtCfg.dateInterval;
+  char    prv_tz[sizeof(rtCfg.timezone)];   strlcpy(prv_tz,  rtCfg.timezone,  sizeof(prv_tz));
+  char    prv_ntp[sizeof(rtCfg.ntpServer)]; strlcpy(prv_ntp, rtCfg.ntpServer, sizeof(prv_ntp));
+
   bool changed = false;
 
   if (doc.containsKey("mode")) {
@@ -210,12 +219,34 @@ static void handleConfigPost() {
     changed = true;
   }
 
-  if (changed) saveConfig();
+  if (changed) {
+    saveConfig();
+    // Build a concise change summary — only fields that actually differ
+    char   log[320];
+    int    pos = 0;
+    #define _L(...) pos += snprintf(log + pos, sizeof(log) - pos, __VA_ARGS__)
+    if (prv_mode  != rtCfg.clockMode)
+      _L("mode %s→%s  ", MODE_NAMES[prv_mode], MODE_NAMES[rtCfg.clockMode < NUM_MODES ? rtCfg.clockMode : 0]);
+    if (prv_bright != rtCfg.brightness)
+      _L("brightness %d→%d  ", prv_bright, rtCfg.brightness);
+    if (prv_ampm  != rtCfg.ampm)
+      _L("ampm %d→%d  ", prv_ampm, rtCfg.ampm);
+    if (prv_onR != rtCfg.ledOnR || prv_onG != rtCfg.ledOnG || prv_onB != rtCfg.ledOnB)
+      _L("ledOn #%02X%02X%02X→#%02X%02X%02X  ", prv_onR, prv_onG, prv_onB, rtCfg.ledOnR, rtCfg.ledOnG, rtCfg.ledOnB);
+    if (prv_offR != rtCfg.ledOffR || prv_offG != rtCfg.ledOffG || prv_offB != rtCfg.ledOffB)
+      _L("ledOff #%02X%02X%02X→#%02X%02X%02X  ", prv_offR, prv_offG, prv_offB, rtCfg.ledOffR, rtCfg.ledOffG, rtCfg.ledOffB);
+    if (strcmp(prv_tz,  rtCfg.timezone)  != 0) _L("tz %s→%s  ",  prv_tz,  rtCfg.timezone);
+    if (strcmp(prv_ntp, rtCfg.ntpServer) != 0) _L("ntp %s→%s  ", prv_ntp, rtCfg.ntpServer);
+    if (prv_dint  != rtCfg.dateInterval)        _L("dateInterval %d→%d  ", prv_dint, rtCfg.dateInterval);
+    if (prv_ldr   != rtCfg.ldrEnabled)          _L("ldr %d→%d  ", prv_ldr, rtCfg.ldrEnabled);
+    #undef _L
+    while (pos > 0 && log[pos - 1] == ' ') pos--;
+    log[pos] = '\0';
+    DBG_INFO("Config saved — %s", pos > 0 ? log : "no fields changed");
+  }
 
   server.sendHeader("Cache-Control", "no-cache");
   server.send(200, "application/json", "{\"status\":\"ok\"}");
-  DBG_INFO("Config POST applied — mode=%d bright=%d ampm=%d tz=%s",
-           rtCfg.clockMode, rtCfg.brightness, rtCfg.ampm, rtCfg.timezone);
 }
 
 // ── /api/wifi-reset POST ──────────────────────────────────────────────────────
@@ -230,7 +261,31 @@ static void handleWifiReset() {
   ESP.restart();
 }
 
+static const char* mimeFor(const String& path) {
+  if (path.endsWith(".html")) return "text/html";
+  if (path.endsWith(".css"))  return "text/css";
+  if (path.endsWith(".js"))   return "application/javascript";
+  if (path.endsWith(".png"))  return "image/png";
+  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+  if (path.endsWith(".svg"))  return "image/svg+xml";
+  if (path.endsWith(".ico"))  return "image/x-icon";
+  return "application/octet-stream";
+}
+
+// Fallback: try to serve any file present in LittleFS before returning 404.
 static void handleNotFound() {
+  String path = server.uri();
+  if (fsReady && LittleFS.exists(path)) {
+    fs::File f = LittleFS.open(path, "r");
+    if (f) {
+      server.sendHeader("Cache-Control", "max-age=300");
+      server.streamFile(f, mimeFor(path));
+      f.close();
+      DBG_VERBOSE("Served %s (%u bytes)", path.c_str(), (unsigned)f.size());
+      return;
+    }
+  }
+  DBG_WARN("404 %s", path.c_str());
   server.send(404, "text/plain", "Not found");
 }
 

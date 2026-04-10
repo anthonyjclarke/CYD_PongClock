@@ -11,7 +11,17 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Audit `mybigfont` 10×14 digits — check `1` and `7` proportions visually on device
 
 ### Next to do
-- ESP32 display: immediate mode-switch when mode changed via WebUI (currently takes effect on next touch or restart)
+- Audit and prune now-redundant TFT footer boot-status code after the matrix IP boot display change
+
+## [0.7.2] 2026-04-11
+
+### Added
+- **Matrix IP boot display** — after the splash screen, a successful WiFi connection now shows the assigned IP address on the LED matrix using the existing `putChar()` / `putTinyChar()` font path rather than TFT text rendering. Short addresses are centred; longer addresses scroll for readability.
+- **First-run WiFiManager portal hold-open** — `initWiFi()` now checks whether a saved SSID exists and calls `setConfigPortalTimeout(0)` when none is present, so the captive portal remains available until credentials are entered on first boot or after a WiFi reset.
+
+### Changed
+- **WebUI Clock tab mode switching** — clicking a mode pill now changes the physical TFT immediately as well as the browser preview. Each firmware mode loop exits as soon as `clock_mode` no longer matches its active mode, so remote mode changes take effect without waiting for a touch event or restart.
+- **Config tab simplification** — redundant clock-mode radios removed from the Config tab. Clock selection now lives only on the Clock tab; Config retains time format, date interval, display, network, and WiFi settings.
 
 ### Phase 4 — Timer mode
 - Countdown timer as 5th clock mode (`NUM_MODES` → 5)
@@ -23,6 +33,18 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Requires Phase 3 display rows to show alongside time
 - Display in Slide mode row 3 or dedicated mode
 
+
+## [0.7.1] 2026-03-31
+
+### Added
+- **WebUI logo header** — Atari Pong® logo bitmap (`pong-logo.png`, served from LittleFS) centred in the page header; "Clock" appended in Fredoka One (Google Fonts CDN) sized to match the PONG® cap-height. CSS `filter: invert(1)` + `mix-blend-mode: screen` renders clean white marks on the dark UI with no visible background rectangle. Fully responsive (scales on mobile).
+- **Config change summary in debug log** — `handleConfigPost()` snapshots all `rtCfg` fields before applying changes and emits a single `DBG_INFO` line listing only what changed with old→new values (e.g. `mode Slide→Pong  ledOn #FF8C00→#00FF00`). Silent if nothing changed. Active at `DEBUG_LEVEL >= 3`.
+- **Generic LittleFS file serving** — `handleNotFound()` now checks LittleFS before returning 404 and serves any matched file with MIME type derived from extension. Any asset added to `data/` is automatically served — no per-file handler registration required.
+
+### Fixed
+- **LED colour change full refresh** — changing on/off colours via WebUI now immediately repaints the entire display. `setLedColours()` calls `cls()` + `pushMatrix()` to flush off-state pixels at once and sets a `ledColourChanged` flag; each mode loop detects the flag on its next iteration and resets its time-tracking sentinel to force a full repaint of on-state pixels (Slide redraws all digits; Pong triggers restart; Digits/WordClock/Invaders invalidate their minute cache).
+
+---
 
 ## [0.7.0] 2026-03-30
 
@@ -221,5 +243,4 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Replaced DS1307 RTC with NTP/ezTime
 - Replaced physical buttons with capacitive touch zones
 - Replaced raw `Serial.print` debug calls with leveled `DBG_*` macros
-
 

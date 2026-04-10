@@ -11,6 +11,8 @@ uint8_t currentBrightness = BRIGHTNESS_DEFAULT;
 static uint16_t colourOn  = 0;
 static uint16_t colourOff = 0;
 
+bool ledColourChanged = false;
+
 void initColours() {
   colourOn  = tft.color565(COLOUR_LED_ON_R,  COLOUR_LED_ON_G,  COLOUR_LED_ON_B);
   colourOff = tft.color565(COLOUR_LED_OFF_R, COLOUR_LED_OFF_G, COLOUR_LED_OFF_B);
@@ -96,7 +98,11 @@ void setLedColours(uint8_t onR, uint8_t onG, uint8_t onB,
                    uint8_t offR, uint8_t offG, uint8_t offB) {
   colourOn  = tft.color565(onR, onG, onB);
   colourOff = tft.color565(offR, offG, offB);
-  // Mode loop will call cls()/plot() naturally on its next frame; no immediate redraw needed.
+  // Immediately repaint all off-state pixels so the new colourOff is visible at once.
+  // ledColourChanged tells each mode loop to repaint its on-state pixels on the next pass.
+  cls();
+  pushMatrix();
+  ledColourChanged = true;
 }
 
 void updateBrightness() {
