@@ -2,7 +2,7 @@
 // config.h — PongClock CYD user-tuneable constants
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FW_VERSION          "0.7"       // shown on splash screen — update with each release
+#define FIRMWARE_VERSION    "0.7.3"     // shown on splash screen — keep in sync with README badge
 
 // ── Display ───────────────────────────────────────────────────────────────────
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)

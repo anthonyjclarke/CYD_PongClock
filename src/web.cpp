@@ -1,5 +1,8 @@
 #include "web.h"
 #include "display.h"
+// TFT_eSPI (via display.h) defines FS_NO_GLOBALS before including FS.h, preventing FS
+// from entering the global namespace. WebServer.h uses bare FS, so bring it into scope.
+using fs::FS;
 #include "clock.h"
 #include "config.h"
 #include "config_nvs.h"
@@ -103,7 +106,7 @@ static void handleApiInfo() {
     "\"uptime\":%lu,"
     "\"freeHeap\":%u,"
     "\"ip\":\"%s\"}",
-    FW_VERSION,
+    FIRMWARE_VERSION,
     (int)clock_mode,
     MODE_NAMES[clock_mode < NUM_MODES ? clock_mode : 0],
     (int)currentBrightness,
@@ -224,22 +227,22 @@ static void handleConfigPost() {
     // Build a concise change summary — only fields that actually differ
     char   log[320];
     int    pos = 0;
-    #define _L(...) pos += snprintf(log + pos, sizeof(log) - pos, __VA_ARGS__)
+    #define _CFGLOG(...) pos += snprintf(log + pos, sizeof(log) - pos, __VA_ARGS__)
     if (prv_mode  != rtCfg.clockMode)
-      _L("mode %s→%s  ", MODE_NAMES[prv_mode], MODE_NAMES[rtCfg.clockMode < NUM_MODES ? rtCfg.clockMode : 0]);
+      _CFGLOG("mode %s→%s  ", MODE_NAMES[prv_mode], MODE_NAMES[rtCfg.clockMode < NUM_MODES ? rtCfg.clockMode : 0]);
     if (prv_bright != rtCfg.brightness)
-      _L("brightness %d→%d  ", prv_bright, rtCfg.brightness);
+      _CFGLOG("brightness %d→%d  ", prv_bright, rtCfg.brightness);
     if (prv_ampm  != rtCfg.ampm)
-      _L("ampm %d→%d  ", prv_ampm, rtCfg.ampm);
+      _CFGLOG("ampm %d→%d  ", prv_ampm, rtCfg.ampm);
     if (prv_onR != rtCfg.ledOnR || prv_onG != rtCfg.ledOnG || prv_onB != rtCfg.ledOnB)
-      _L("ledOn #%02X%02X%02X→#%02X%02X%02X  ", prv_onR, prv_onG, prv_onB, rtCfg.ledOnR, rtCfg.ledOnG, rtCfg.ledOnB);
+      _CFGLOG("ledOn #%02X%02X%02X→#%02X%02X%02X  ", prv_onR, prv_onG, prv_onB, rtCfg.ledOnR, rtCfg.ledOnG, rtCfg.ledOnB);
     if (prv_offR != rtCfg.ledOffR || prv_offG != rtCfg.ledOffG || prv_offB != rtCfg.ledOffB)
-      _L("ledOff #%02X%02X%02X→#%02X%02X%02X  ", prv_offR, prv_offG, prv_offB, rtCfg.ledOffR, rtCfg.ledOffG, rtCfg.ledOffB);
-    if (strcmp(prv_tz,  rtCfg.timezone)  != 0) _L("tz %s→%s  ",  prv_tz,  rtCfg.timezone);
-    if (strcmp(prv_ntp, rtCfg.ntpServer) != 0) _L("ntp %s→%s  ", prv_ntp, rtCfg.ntpServer);
-    if (prv_dint  != rtCfg.dateInterval)        _L("dateInterval %d→%d  ", prv_dint, rtCfg.dateInterval);
-    if (prv_ldr   != rtCfg.ldrEnabled)          _L("ldr %d→%d  ", prv_ldr, rtCfg.ldrEnabled);
-    #undef _L
+      _CFGLOG("ledOff #%02X%02X%02X→#%02X%02X%02X  ", prv_offR, prv_offG, prv_offB, rtCfg.ledOffR, rtCfg.ledOffG, rtCfg.ledOffB);
+    if (strcmp(prv_tz,  rtCfg.timezone)  != 0) _CFGLOG("tz %s→%s  ",  prv_tz,  rtCfg.timezone);
+    if (strcmp(prv_ntp, rtCfg.ntpServer) != 0) _CFGLOG("ntp %s→%s  ", prv_ntp, rtCfg.ntpServer);
+    if (prv_dint  != rtCfg.dateInterval)        _CFGLOG("dateInterval %d→%d  ", prv_dint, rtCfg.dateInterval);
+    if (prv_ldr   != rtCfg.ldrEnabled)          _CFGLOG("ldr %d→%d  ", prv_ldr, rtCfg.ldrEnabled);
+    #undef _CFGLOG
     while (pos > 0 && log[pos - 1] == ' ') pos--;
     log[pos] = '\0';
     DBG_INFO("Config saved — %s", pos > 0 ? log : "no fields changed");
