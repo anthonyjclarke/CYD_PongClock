@@ -22,9 +22,8 @@
  *   DBG_VERBOSE(fmt, ...) - Verbose/frequent output (level 4)
  *
  * RUNTIME CONTROL:
- *   Set debugLevel variable (0-4) to change verbosity at runtime
- *   Web API: GET /api/debug  →  {"level": N}
- *            POST /api/debug  body: level=N
+ *   Set debugLevel variable (0-4) to change verbosity at runtime.
+ *   No web endpoint — adjust DEBUG_LEVEL build flag or recompile.
  */
 
 #ifndef DEBUG_LEVEL

@@ -13,6 +13,22 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 ### Next to do
 - Audit and prune now-redundant TFT footer boot-status code after the matrix IP boot display change
 
+## [0.7.3] 2026-04-21
+
+### Changed
+- **`FIRMWARE_VERSION`** — renamed constant from `FW_VERSION` to `FIRMWARE_VERSION` in `config.h` and all references in `.cpp` files; aligns with global project rules. Version bumped `"0.7"` → `"0.7.2"` to match CHANGELOG.
+- **Arduino ESP32 3.x LEDC API** — replaced deprecated `ledcSetup(ch, freq, res)` + `ledcAttachPin(pin, ch)` + `ledcWrite(ch, duty)` with the 3.x unified API: `ledcAttach(pin, freq, res)` + `ledcWrite(pin, duty)` (pin = `TFT_BL` = 21). Affects `main.cpp` (init) and `display.cpp` (setBrightness/fade_down/fade_up).
+- **FS namespace fix for Arduino ESP32 3.x** — TFT_eSPI defines `FS_NO_GLOBALS` before including `FS.h`, preventing `FS` from entering the global namespace. Added `using fs::FS;` in `main.cpp` and `web.cpp` after the TFT_eSPI include so `WebServer.h` (pulled in by WiFiManager) can resolve the bare `FS` type.
+- **`_CFGLOG` macro** — renamed from `_L` in `web.cpp` config-diff logger to avoid redefinition conflict with `ctype.h`'s `_L 02` macro.
+
+### Fixed
+- Stale comments in `display.h` (`288×96` → `288×192`; `0..15` → `0..31`) — carried over from before the 32-row matrix was added in v0.3.0.
+- `config_nvs.h` `clockMode` comment omitted `4=Invaders`; corrected.
+- `debug.h` comment incorrectly described a `/api/debug` web endpoint that does not exist.
+- README missing badge block (version/platform/PIO/board/license/status); added per project rules.
+
+---
+
 ## [0.7.2] 2026-04-11
 
 ### Added

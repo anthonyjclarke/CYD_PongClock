@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 struct RuntimeConfig {
-  uint8_t  clockMode;       // 0=Slide 1=Pong 2=Digits 3=WordClock
+  uint8_t  clockMode;       // 0=Slide 1=Pong 2=Digits 3=WordClock 4=Invaders
   uint8_t  brightness;      // backlight PWM 0-255
   bool     ampm;            // false=24h  true=12h
   uint8_t  ledOnR;          // LED-on colour

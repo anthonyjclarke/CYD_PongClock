@@ -4,12 +4,12 @@
 #include <TFT_eSPI.h>
 
 extern TFT_eSPI tft;
-extern TFT_eSprite matrixSprite;  // 288×96 off-screen buffer for the LED matrix
+extern TFT_eSprite matrixSprite;  // 288×192 off-screen buffer for the LED matrix
 
 // Initialise colour constants (call once after tft.init())
 void initColours();
 
-// Plot a virtual LED at matrix coordinates (0..47, 0..15). on=true lights it.
+// Plot a virtual LED at matrix coordinates (0..47, 0..31). on=true lights it.
 // Writes into matrixSprite — call pushMatrix() to send to screen.
 void plot(int x, int y, bool on);
 

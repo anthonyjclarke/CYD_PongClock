@@ -1,5 +1,9 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
+// TFT_eSPI defines FS_NO_GLOBALS before including FS.h, which prevents FS from entering
+// the global namespace. WebServer.h (pulled in by WiFiManager) uses bare FS, so bring
+// it into scope here before WiFiManager.h is processed.
+using fs::FS;
 #include <SPI.h>
 #include <WiFiManager.h>
 #include <ezTime.h>
@@ -19,15 +23,14 @@ void initDisplay() {
   tft.init();
   tft.setRotation(SCREEN_ROTATION);
 
-  // Backlight via LEDC
-  ledcSetup(0, 5000, 8);
-  ledcAttachPin(TFT_BL, 0);
-  ledcWrite(0, 0); // start dark
+  // Backlight via LEDC (Arduino ESP32 3.x API: ledcAttach replaces ledcSetup+ledcAttachPin)
+  ledcAttach(TFT_BL, 5000, 8);
+  ledcWrite(TFT_BL, 0); // start dark
 
   initColours(); // sets up sprite and colour constants
   clsNow();
 
-  ledcWrite(0, BRIGHTNESS_DEFAULT);
+  ledcWrite(TFT_BL, BRIGHTNESS_DEFAULT);
   currentBrightness = BRIGHTNESS_DEFAULT;
 
   DBG_INFO("Display initialised %dx%d rotation=%d",
@@ -71,7 +74,7 @@ static void showSplash() {
 
   // ── Typewriter: version ─────────────────────────────────────────────────────
   char verBuf[8];
-  snprintf(verBuf, sizeof(verBuf), "v%s", FW_VERSION);
+  snprintf(verBuf, sizeof(verBuf), "v%s", FIRMWARE_VERSION);
   byte vlen = (byte)strlen(verBuf);
   byte vx   = (byte)((LED_WIDTH - (vlen * 6 - 1)) / 2);
   delay(100);

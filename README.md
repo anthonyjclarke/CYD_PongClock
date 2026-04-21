@@ -1,5 +1,13 @@
 # PongClock CYD
 
+<!-- Update version badge when FIRMWARE_VERSION changes in include/config.h -->
+![Version](https://img.shields.io/badge/version-0.7.3-blue.svg)
+![Platform](https://img.shields.io/badge/platform-ESP32-green.svg)
+![PlatformIO](https://img.shields.io/badge/PlatformIO-6.x-orange.svg)
+![Board](https://img.shields.io/badge/CYD-2.8%22-yellow.svg)
+![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)
+![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
+
 A port of Nick Hall's classic **Pong Clock** to the **ESP32-2432S028R (Cheap Yellow Display)**. The original drove two Sure Electronics 2416 LED panels (48×16 combined). This version emulates a 48×32 virtual LED matrix on the ILI9341 320×240 TFT — each virtual LED is a 6×6 rounded rectangle in amber, giving a retro LED panel aesthetic.  Includes the Invader mode added by Richard Shipman.
 
 Original project: http://123led.wordpress.com/
@@ -133,7 +141,7 @@ Example `/api/info` response:
 
 ```json
 {
-  "firmware": "0.7.1",
+  "firmware": "0.7.3",
   "mode": 1,
   "modeName": "Pong",
   "brightness": 180,

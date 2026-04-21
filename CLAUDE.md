@@ -50,7 +50,7 @@ src/
   config_nvs.cpp — NVS persistence (Preferences namespace "pclock")
 include/
   config.h      — compile-time defaults (WEB_SERVER_PORT, colours, timing, etc.)
-  config_nvs.h  — RuntimeConfig struct + loadConfig()/saveConfig()/resetConfigToDefaults()
+  config_nvs.h  — RuntimeConfig struct + loadConfig()/saveConfig()/resetConfigToDefaults(); clockMode 0–4
   display.h     — plot/cls/fade/setLedColours declarations, extern tft + sprite
   clock.h       — clock mode declarations
   web.h         — initWeb(), webLoop() declarations
@@ -83,6 +83,12 @@ Screen split into left/right halves at `TOUCH_X_MID`. Single tap left half → p
 - WiFiManager uses `setConfigPortalTimeout(0)` when no saved SSID exists, so first-run captive portal stays open until credentials are entered; reconnect attempts with saved credentials still use `WIFI_TIMEOUT_S`.
 - `ledColourChanged` (bool, `display.cpp`) is set by `setLedColours()` after a WebUI colour change. Each mode loop checks it on the next iteration, resets to `false`, then forces a full repaint of on-state pixels (Slide redraws all digits; Pong triggers restart; Digits/Word/Invaders invalidate their minute-cache sentinel). The off-state pixels are handled immediately by `setLedColours()` itself via `cls()`+`pushMatrix()`.
 - `pong-logo.png` in `data/` must be a trimmed black-on-white PNG (no white padding). CSS `filter: invert(1)` + `mix-blend-mode: screen` renders it white-on-transparent on the dark UI. White padding in the source PNG produces a visible dark rectangle after inversion — trim with `convert -trim` (ImageMagick) before adding to `data/`.
+- **Firmware version detection in NVS** — `loadConfig()` reads the `"fwver"` key from the `"pclock"` NVS namespace and compares it against `FIRMWARE_VERSION`. A mismatch means first boot after a new flash: `clockMode` is reset to `DEFAULT_CLOCK_MODE` and the new version tag is written. Power cycles leave the tag unchanged, so the last-used mode is always resumed. Consequence: bumping `FIRMWARE_VERSION` in `config.h` automatically resets mode on the next flash.
+- `debug.h` declares a `debugLevel` runtime variable and mentions a `/api/debug` web endpoint in its comment — that endpoint **does not exist** in `web.cpp`. Debug verbosity is compile-time only via the `DEBUG_LEVEL` build flag.
+- The version constant is named `FIRMWARE_VERSION` (not `FW_VERSION`) in `config.h` — all references in `.cpp` files use `FIRMWARE_VERSION`. Historical CHANGELOG entries that mention `FW_VERSION` reflect the pre-0.7.2 name before it was aligned with global rules.
+- **Arduino ESP32 3.x — LEDC API** — `ledcSetup(ch, freq, res)` + `ledcAttachPin(pin, ch)` were removed in core 3.0. Replaced with `ledcAttach(pin, freq, res)` + `ledcWrite(pin, duty)` where the GPIO pin replaces the channel number. All `ledcWrite` calls in `main.cpp` and `display.cpp` use `TFT_BL` (= 21) as the pin directly.
+- **Arduino ESP32 3.x — FS namespace** — TFT_eSPI defines `FS_NO_GLOBALS` before including `FS.h`, which keeps `FS` inside `namespace fs` only. `WebServer.h` (included via WiFiManager) uses bare `FS` and fails to compile without a `using fs::FS;` declaration. Added `using fs::FS;` in `main.cpp` (after `<TFT_eSPI.h>`) and `web.cpp` (after `"display.h"`).
+- **`_CFGLOG` macro in `web.cpp`** — the config-diff logging uses a local `#define _CFGLOG(...) …` macro. The short name `_L` conflicts with `_L 02` from the toolchain's `ctype.h`; renamed to `_CFGLOG` to avoid the redefinition warning.
 
 ## Flashing Notes
 

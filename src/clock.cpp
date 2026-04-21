@@ -453,6 +453,7 @@ void slide() {
 
     if (ledColourChanged) {
       ledColourChanged = false;
+      cls();
       for (byte i = 0; i < 6; i++) {
         char ch[2]; itoa(digits_old[i], ch, 10);
         if (ampm && i == 5 && digits_old[5] == 0) ch[0] = ' ';
@@ -610,6 +611,7 @@ void pong() {
 
     if (ledColourChanged) {
       ledColourChanged = false;
+      cls();
       bat1_upd = bat2_upd = 1;
       restart = 1;
     }
@@ -795,6 +797,7 @@ void digits() {
 
     if (ledColourChanged) {
       ledColourChanged = false;
+      cls();
       mins = 100;
       secs = 100;
     }
@@ -874,6 +877,7 @@ void word_clock() {
 
     if (ledColourChanged) {
       ledColourChanged = false;
+      cls();
       old_mins = 100;
     }
 
@@ -1028,6 +1032,7 @@ void invaders() {
 
     if (ledColourChanged) {
       ledColourChanged = false;
+      cls();
       prev_mins = 255;
     }
 

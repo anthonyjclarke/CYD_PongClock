@@ -72,26 +72,26 @@ void clsNow() {
 
 void setBrightness(uint8_t pwm) {
   currentBrightness = pwm;
-  ledcWrite(0, pwm);
+  ledcWrite(TFT_BL, pwm);
 }
 
 void fade_down() {
   for (int i = currentBrightness; i >= 0; i -= 8) {
-    ledcWrite(0, (uint8_t)i);
+    ledcWrite(TFT_BL, (uint8_t)i);
     delay(FADE_DELAY);
   }
-  ledcWrite(0, 0);
+  ledcWrite(TFT_BL, 0);
   cls();
   pushMatrix();
-  ledcWrite(0, currentBrightness);
+  ledcWrite(TFT_BL, currentBrightness);
 }
 
 void fade_up() {
   for (int i = 0; i <= currentBrightness; i += 8) {
-    ledcWrite(0, (uint8_t)i);
+    ledcWrite(TFT_BL, (uint8_t)i);
     delay(FADE_DELAY);
   }
-  ledcWrite(0, currentBrightness);
+  ledcWrite(TFT_BL, currentBrightness);
 }
 
 void setLedColours(uint8_t onR, uint8_t onG, uint8_t onB,
