@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes documented here.
-Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections.
+Format: `## [version] DD-MM-YYYY` with `### Added / Changed / Fixed` subsections.
 
 ---
 
@@ -13,7 +13,28 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 ### Next to do
 - Audit and prune now-redundant TFT footer boot-status code after the matrix IP boot display change
 
-## [0.7.3] 2026-04-21
+## [0.8.0] unreleased
+
+### Added
+- **Web installer** — ESP Web Tools page at https://anthonyjclarke.github.io/CYD_PongClock/ (shared tooling: `anthonyjclarke/cyd-web-installer`). `.github/workflows/firmware.yml` builds every push; a `v*` tag on `main` publishes the release (`*-firmware.bin`, `*-merged.bin`, `SHA256SUMS.txt`) and the installer page.
+- **`PROJECT_NAME` `"CYD_PongClock"`** in `config.h` — frozen; the installer matches it to offer **Update** instead of a fresh install. `AP_NAME` is now the literal and `WIFI_AP_NAME` aliases it.
+- **Improv-Serial, always on** — vendored `lib/ImprovWiFi` (cyd-web-installer 1.0.1, newline-prefixed packets) and `src/network/improv_setup.*`. A core-0 FreeRTOS task calls `improvTick()` every 20 ms, so Improv answers within ESP Web Tools' 1.5 s window even during the splash, NTP wait, date display or the first-run WiFi portal. **Configure WiFi** in the installer sends credentials over USB.
+- `tools/merge_bin.py` post-build script (`flash_parts.json`, `firmware-merged.bin`) and installer labels on `myclock_cyd`.
+- Boot log: `Running from app0|app1` and `=== CYD_PongClock vX.Y.Z starting ===`.
+
+### Changed
+- **Web UI served from PROGMEM** — `tools/embed_web.py` (pre-build) embeds `data/` into the gitignored `src/web_assets.h`; `web.cpp` serves it with `send_P`. LittleFS is no longer mounted and the `uploadfs` step is gone. `/pong-logo.png` has an explicit route; unknown paths return 404.
+- **Platform pinned to `espressif32@6.12.0`** (arduino-esp32 2.0.17) for reproducible release builds. The backlight goes back to the 2.0.x LEDC channel API (`ledcSetup` + `ledcAttachPin`, channel `BACKLIGHT_LEDC_CH` = 0), replacing the 3.x `ledcAttach(pin, …)` calls from 0.7.3.
+- **Clock mode survives firmware updates** — `loadConfig()` no longer resets the mode to `DEFAULT_CLOCK_MODE` when `FIRMWARE_VERSION` changes; the `fwver` tag is still written and logged. Every installer Update changes the version, so all settings must survive it.
+- Splash shows the version without its pre-release suffix (`v0.8.0`, not `v0.8.0-`).
+
+### Fixed
+- `config.h` now includes `<stdint.h>`; it used `uint16_t` without it and failed when included first.
+
+### Upgrade note
+- A 0.7.x board has no Improv, so the installer offers **Install** rather than Update. Answer **no** to the erase question to keep WiFi and settings — the partition table is unchanged and NVS is not written. The old LittleFS web files stay in the data partition, unused.
+
+## [0.7.3] 21-04-2026
 
 ### Changed
 - **`FIRMWARE_VERSION`** — renamed constant from `FW_VERSION` to `FIRMWARE_VERSION` in `config.h` and all references in `.cpp` files; aligns with global project rules. Version bumped `"0.7"` → `"0.7.2"` to match CHANGELOG.
@@ -29,7 +50,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ---
 
-## [0.7.2] 2026-04-11
+## [0.7.2] 11-04-2026
 
 ### Added
 - **Matrix IP boot display** — after the splash screen, a successful WiFi connection now shows the assigned IP address on the LED matrix using the existing `putChar()` / `putTinyChar()` font path rather than TFT text rendering. Short addresses are centred; longer addresses scroll for readability.
@@ -50,7 +71,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - Display in Slide mode row 3 or dedicated mode
 
 
-## [0.7.1] 2026-03-31
+## [0.7.1] 31-03-2026
 
 ### Added
 - **WebUI logo header** — Atari Pong® logo bitmap (`pong-logo.png`, served from LittleFS) centred in the page header; "Clock" appended in Fredoka One (Google Fonts CDN) sized to match the PONG® cap-height. CSS `filter: invert(1)` + `mix-blend-mode: screen` renders clean white marks on the dark UI with no visible background rectangle. Fully responsive (scales on mobile).
@@ -62,7 +83,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ---
 
-## [0.7.0] 2026-03-30
+## [0.7.0] 30-03-2026
 
 ### Added
 - **`DEFAULT_CLOCK_MODE`** in `config.h` — sets the clock mode used on the first boot
@@ -90,7 +111,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ---
 
-## [0.6.0] 2026-03-29
+## [0.6.0] 29-03-2026
 
 ### Added
 - **Invaders mode** (mode 4) — faithful port of Richard Shipman's Invaders mode
@@ -115,7 +136,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ---
 
-## [0.5.0] 2026-03-28
+## [0.5.0] 28-03-2026
 
 ### Added
 - **Full browser clock** (`data/`) — JavaScript reimplementation of all 4 clock modes
@@ -145,7 +166,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 - `src/web.cpp`: replaced inline HTML with LittleFS file serving; added new API routes;
   kept `/screenshot.bmp` and `/api/info` unchanged
 
-## [0.4.0] 2026-03-28
+## [0.4.0] 28-03-2026
 
 ### Added
 - HTTP web server (`WebServer` on port 80, `src/web.cpp`):
@@ -165,7 +186,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ---
 
-## [0.3.0] 2026-03-18
+## [0.3.0] 18-03-2026
 
 ### Added
 - Animated boot splash: typewriter reveal of "PONG / CLOCK / v0.3" into the LED matrix
@@ -193,7 +214,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ---
 
-## [0.2.0] 2026-03-18
+## [0.2.0] 18-03-2026
 
 ### Fixed
 - Auto date display interval simplified to a single `DATE_DISPLAY_MINS` constant in `config.h`
@@ -239,7 +260,7 @@ Format: `## [version] YYYY-MM-DD` with `### Added / Changed / Fixed` subsections
 
 ---
 
-## [0.1.0] 2026-03-17
+## [0.1.0] 17-03-2026
 
 ### Added
 - Full port of Nick Hall Pong Clock v7.5 to ESP32 CYD (ILI9341 320×240)
