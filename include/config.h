@@ -54,6 +54,10 @@ constexpr uint8_t BACKLIGHT_LEDC_CH = 0;  // LEDC channel driving TFT_BL (GPIO 2
 #define WIFI_AP_NAME        AP_NAME
 #define WIFI_TIMEOUT_S      60
 
+// ── Improv-Serial (web installer WiFi setup + Update detection) ───────────────
+#define IMPROV_SETUP_ENABLED 1
+#define IMPROV_DEVICE_PREFIX "PongClock"
+
 // ── NTP / Time ────────────────────────────────────────────────────────────────
 #define NTP_TIMEZONE        "Australia/Sydney"
 // POSIX fallback used when the ezTime Olson name lookup (timezoneapi.io HTTP call) fails.

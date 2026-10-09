@@ -14,6 +14,7 @@ using fs::FS;
 #include "display.h"
 #include "clock.h"
 #include "web.h"
+#include "network/improv_setup.h"
 
 TFT_eSPI tft;
 
@@ -211,9 +212,31 @@ void initTime() {
            myTZ.dateTime("O").c_str());  // e.g. +1000 or +1100
 }
 
+// ── Improv init ───────────────────────────────────────────────────────────────
+// ESP Web Tools must get an Improv reply within 1.5 s of Connect, but the clock
+// modes, splash, NTP wait and first-run WiFi portal all block for seconds at a
+// time. A small task on core 0 services Improv every 20 ms instead, so no
+// clock code has to tick it. Serial writes are mutex-protected in the core.
+#if IMPROV_SETUP_ENABLED
+static void improvTask(void*) {
+  for (;;) {
+    improvTick();  // restarts the device once new Improv credentials connect
+    vTaskDelay(pdMS_TO_TICKS(20));
+  }
+}
+#endif
+
+void initImprov() {
+  improvBegin();
+#if IMPROV_SETUP_ENABLED
+  xTaskCreatePinnedToCore(improvTask, "improv", 4096, nullptr, 1, nullptr, 0);
+#endif
+}
+
 // ── setup ─────────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
+  initImprov();
   DBG_INFO("=== %s v%s starting ===", PROJECT_NAME, FIRMWARE_VERSION);
   DBG_INFO("Running from %s", esp_ota_get_running_partition()->label);
 
