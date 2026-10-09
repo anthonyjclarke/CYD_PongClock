@@ -10,38 +10,23 @@ using fs::FS;
 #include <WebServer.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
-#include <LittleFS.h>
 #include <ArduinoJson.h>
+#include "web_assets.h"  // generated from data/ by tools/embed_web.py
 
 static WebServer server(WEB_SERVER_PORT);
 static bool      webStarted   = false;
-static bool      fsReady      = false;
 
-// ── LittleFS file serve helper ────────────────────────────────────────────────
-static void serveFile(const char* path, const char* mime) {
-  if (!fsReady || !LittleFS.exists(path)) {
-    server.send(404, "text/plain", "Not found");
-    return;
-  }
-  fs::File f = LittleFS.open(path, "r");
-  if (!f) { server.send(500, "text/plain", "Open failed"); return; }
+// ── PROGMEM web UI (embedded from data/ at build time) ────────────────────────
+static void serveAsset(const uint8_t* data, size_t len, const char* mime) {
   server.sendHeader("Cache-Control", "max-age=300");
-  server.streamFile(f, mime);
-  f.close();
+  server.send_P(200, mime, (const char*)data, len);
 }
 
 // ── / ─────────────────────────────────────────────────────────────────────────
-static void handleRoot() {
-  serveFile("/index.html", "text/html");
-}
-
-static void handleClockJs() {
-  serveFile("/clock.js", "application/javascript");
-}
-
-static void handleStyleCss() {
-  serveFile("/style.css", "text/css");
-}
+static void handleRoot()     { serveAsset(INDEX_HTML,    INDEX_HTML_LEN,    "text/html"); }
+static void handleClockJs()  { serveAsset(CLOCK_JS,      CLOCK_JS_LEN,      "application/javascript"); }
+static void handleStyleCss() { serveAsset(STYLE_CSS,     STYLE_CSS_LEN,     "text/css"); }
+static void handlePongLogo() { serveAsset(PONG_LOGO_PNG, PONG_LOGO_PNG_LEN, "image/png"); }
 
 // ── /screenshot.bmp ───────────────────────────────────────────────────────────
 // Streams the matrixSprite buffer (288×192, 8-bit RGB332) as a 24-bit BMP.
@@ -264,31 +249,8 @@ static void handleWifiReset() {
   ESP.restart();
 }
 
-static const char* mimeFor(const String& path) {
-  if (path.endsWith(".html")) return "text/html";
-  if (path.endsWith(".css"))  return "text/css";
-  if (path.endsWith(".js"))   return "application/javascript";
-  if (path.endsWith(".png"))  return "image/png";
-  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
-  if (path.endsWith(".svg"))  return "image/svg+xml";
-  if (path.endsWith(".ico"))  return "image/x-icon";
-  return "application/octet-stream";
-}
-
-// Fallback: try to serve any file present in LittleFS before returning 404.
 static void handleNotFound() {
-  String path = server.uri();
-  if (fsReady && LittleFS.exists(path)) {
-    fs::File f = LittleFS.open(path, "r");
-    if (f) {
-      server.sendHeader("Cache-Control", "max-age=300");
-      server.streamFile(f, mimeFor(path));
-      f.close();
-      DBG_VERBOSE("Served %s (%u bytes)", path.c_str(), (unsigned)f.size());
-      return;
-    }
-  }
-  DBG_WARN("404 %s", path.c_str());
+  DBG_WARN("404 %s", server.uri().c_str());
   server.send(404, "text/plain", "Not found");
 }
 
@@ -299,19 +261,10 @@ void initWeb() {
     return;
   }
 
-  // Mount LittleFS — true = format on first boot if unmountable
-  fsReady = LittleFS.begin(true);
-  if (!fsReady) {
-    DBG_WARN("LittleFS mount failed — web UI files unavailable");
-  } else {
-    DBG_INFO("LittleFS mounted — %u KB used / %u KB total",
-             (unsigned)(LittleFS.usedBytes() / 1024),
-             (unsigned)(LittleFS.totalBytes() / 1024));
-  }
-
   server.on("/",               HTTP_GET,  handleRoot);
   server.on("/clock.js",       HTTP_GET,  handleClockJs);
   server.on("/style.css",      HTTP_GET,  handleStyleCss);
+  server.on("/pong-logo.png",  HTTP_GET,  handlePongLogo);
   server.on("/screenshot.bmp", HTTP_GET,  handleScreenshot);
   server.on("/api/info",       HTTP_GET,  handleApiInfo);
   server.on("/api/config",     HTTP_GET,  handleConfigGet);
