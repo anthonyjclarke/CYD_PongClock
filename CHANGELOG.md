@@ -13,6 +13,10 @@ Format: `## [version] DD-MM-YYYY` with `### Added / Changed / Fixed` subsections
 ### Next to do
 - Audit and prune now-redundant TFT footer boot-status code after the matrix IP boot display change
 
+## [0.9.0] unreleased
+
+---
+
 ## [0.8.0] 09-10-2026
 
 ### Added

@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FIRMWARE_VERSION    "0.8.0"     // splash, Improv, installer manifest — keep in sync with README badge
+#define FIRMWARE_VERSION    "0.9.0-dev" // splash, Improv, installer manifest — keep in sync with README badge
 #define PROJECT_NAME        "CYD_PongClock"  // frozen: Improv + installer manifest name — never change
 
 // ── Display ───────────────────────────────────────────────────────────────────

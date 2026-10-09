@@ -1,7 +1,7 @@
 # PongClock CYD
 
 <!-- Update version badge when FIRMWARE_VERSION changes in include/config.h -->
-![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.9.0--dev-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-ESP32-green.svg)
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-6.x-orange.svg)
 ![Board](https://img.shields.io/badge/CYD-2.8%22-yellow.svg)
