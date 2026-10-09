@@ -101,12 +101,48 @@ portal indefinitely instead of going offline after `WIFI_TIMEOUT_S`.
 
 ---
 
+## WiFi portal-timeout fix (0.9.0-dev) – hardware check
+
+**09-10-2026**, same board (MAC `b0:cb:d8:da:ae:8c`), dev `2862967`:
+
+| Case                                  | Result                                     |
+|:--------------------------------------|:-------------------------------------------|
+| Saved credentials                     | `portal timeout: 60 s (saved credentials)` |
+| No credentials (`/api/wifi-reset`)    | `0 s (no saved credentials)`, AP up        |
+| Portal open past 60 s                 | Yes – no offline line, no reboot in 75 s+  |
+| Clock settings across the WiFi reset  | Kept (mode 4, brightness 150)              |
+| Re-provision via phone portal         | Credentials saved – see open issue below   |
+
+`/api/wifi-reset` waits 200 ms before erasing. A serial reset sent right
+after its reply stops it from erasing anything.
+
+During this check the installer dialog's **Update** was used on a board
+running 0.9.0-dev. That put it back on the released 0.8.0, which is correct
+behaviour. To change WiFi only, use **Change Wi-Fi** / **Configure Wi-Fi**.
+
+## Open issues
+
+- **Hang after saving WiFi in the phone portal (seen once, 09-10-2026).**
+  After a first-run portal save from a phone, the screen went black with an
+  orange band, the board never joined the LAN, and serial was silent for 12 s.
+  A reset booted it normally, and the credentials had been saved. Not
+  reproduced or logged. The fix's code path is not involved: the timeout is
+  0 in both old and new code. Since 0.8.0, though, the Improv task runs
+  alongside the portal. To investigate, clear WiFi with `/api/wifi-reset`,
+  keep a passive serial capture running (no reset), and repeat the phone
+  setup.
+- **Orange band at the bottom of the display in all modes** – the user says
+  it has always been there. Likely the boot-status footer strip
+  (`showFooterLine()`, y 204–236, dark amber background); see the CHANGELOG
+  *To do* about pruning the footer code.
+
 ## Tests owed
 
 Smoke-tested only. Run these on the next real work on this project, or before
 the next release, and tick them off with date and board MAC.
 
 - [ ] Case 1 – fresh install, erased, on each remaining board
+- [ ] Phone-portal provisioning on a fresh board: no hang (see *Open issues*)
 - [x] Case 2 – Update on a provisioned board (settings kept) – 09-10-2026, `b0:cb:d8:da:ae:8c`
 - [ ] Case 3 – Update from `app1` (only if the project has OTA) – N/A, no OTA
 - [ ] Case 4 – wrong board image, then reinstall (multi-env only) – N/A, one env

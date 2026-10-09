@@ -12,6 +12,8 @@ Format: `## [version] DD-MM-YYYY` with `### Added / Changed / Fixed` subsections
 
 ### Next to do
 - Audit and prune now-redundant TFT footer boot-status code after the matrix IP boot display change
+- Orange band at the bottom of the display in all modes (pre-existing) — likely the footer strip above; check on hardware
+- Investigate a one-off hang after saving WiFi in the phone portal (black screen, no LAN, silent serial; reset recovers) — see `docs/WEB_INSTALLER.md` *Open issues*
 
 ## [0.9.0] unreleased
 
