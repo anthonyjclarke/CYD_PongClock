@@ -7,6 +7,7 @@ using fs::FS;
 #include <SPI.h>
 #include <WiFiManager.h>
 #include <ezTime.h>
+#include <esp_ota_ops.h>
 #include "config.h"
 #include "config_nvs.h"
 #include "debug.h"
@@ -74,8 +75,10 @@ static void showSplash() {
   for (byte i = 0; i < 5; i++) { putChar(xC[i], 12, sC[i]); pushMatrix(); delay(60); }
 
   // ── Typewriter: version ─────────────────────────────────────────────────────
-  char verBuf[8];
-  snprintf(verBuf, sizeof(verBuf), "v%s", FIRMWARE_VERSION);
+  // Matrix fits 8 chars — drop any pre-release suffix ("0.8.0-dev" → "v0.8.0")
+  char verBuf[9];
+  snprintf(verBuf, sizeof(verBuf), "v%.*s",
+           (int)strcspn(FIRMWARE_VERSION, "-"), FIRMWARE_VERSION);
   byte vlen = (byte)strlen(verBuf);
   byte vx   = (byte)((LED_WIDTH - (vlen * 6 - 1)) / 2);
   delay(100);
@@ -211,7 +214,8 @@ void initTime() {
 // ── setup ─────────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
-  DBG_INFO("=== PongClock CYD starting ===");
+  DBG_INFO("=== %s v%s starting ===", PROJECT_NAME, FIRMWARE_VERSION);
+  DBG_INFO("Running from %s", esp_ota_get_running_partition()->label);
 
   // Load NVS config first — values used during display/clock init below
   loadConfig();

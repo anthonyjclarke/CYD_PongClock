@@ -3,7 +3,8 @@
 #include <stdint.h>
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FIRMWARE_VERSION    "0.7.3"     // shown on splash screen — keep in sync with README badge
+#define FIRMWARE_VERSION    "0.8.0-dev" // splash, Improv, installer manifest — keep in sync with README badge
+#define PROJECT_NAME        "CYD_PongClock"  // frozen: Improv + installer manifest name — never change
 
 // ── Display ───────────────────────────────────────────────────────────────────
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)
@@ -49,7 +50,8 @@ constexpr uint8_t BACKLIGHT_LEDC_CH = 0;  // LEDC channel driving TFT_BL (GPIO 2
 #define TOUCH_DEBOUNCE_MS   300         // ms between tap events
 
 // ── WiFi ──────────────────────────────────────────────────────────────────────
-#define WIFI_AP_NAME        "CYD-PongClock"
+#define AP_NAME             "CYD-PongClock"  // setup hotspot; also read by the web installer's index.json
+#define WIFI_AP_NAME        AP_NAME
 #define WIFI_TIMEOUT_S      60
 
 // ── NTP / Time ────────────────────────────────────────────────────────────────
