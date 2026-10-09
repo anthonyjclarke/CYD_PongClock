@@ -13,7 +13,7 @@ Format: `## [version] DD-MM-YYYY` with `### Added / Changed / Fixed` subsections
 ### Next to do
 - Audit and prune now-redundant TFT footer boot-status code after the matrix IP boot display change
 
-## [0.8.0] unreleased
+## [0.8.0] 09-10-2026
 
 ### Added
 - **Web installer** — ESP Web Tools page at https://anthonyjclarke.github.io/CYD_PongClock/ (shared tooling: `anthonyjclarke/cyd-web-installer`). `.github/workflows/firmware.yml` builds every push; a `v*` tag on `main` publishes the release (`*-firmware.bin`, `*-merged.bin`, `SHA256SUMS.txt`) and the installer page.
