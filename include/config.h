@@ -1,5 +1,6 @@
 #pragma once
 // config.h — PongClock CYD user-tuneable constants
+#include <stdint.h>
 
 // ── Firmware version ──────────────────────────────────────────────────────────
 #define FIRMWARE_VERSION    "0.7.3"     // shown on splash screen — keep in sync with README badge
@@ -8,6 +9,7 @@
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)
 #define BRIGHTNESS_DEFAULT  180         // 0–255 backlight PWM
 #define BRIGHTNESS_STEPS    4           // number of brightness levels cycled on long-press
+constexpr uint8_t BACKLIGHT_LEDC_CH = 0;  // LEDC channel driving TFT_BL (GPIO 21)
 
 // ── Virtual LED Matrix ────────────────────────────────────────────────────────
 // Emulates 2× Sure 2416 panels side-by-side: 48 cols × 16 rows

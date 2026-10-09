@@ -23,14 +23,15 @@ void initDisplay() {
   tft.init();
   tft.setRotation(SCREEN_ROTATION);
 
-  // Backlight via LEDC (Arduino ESP32 3.x API: ledcAttach replaces ledcSetup+ledcAttachPin)
-  ledcAttach(TFT_BL, 5000, 8);
-  ledcWrite(TFT_BL, 0); // start dark
+  // Backlight via LEDC (arduino-esp32 2.0.x channel API — platform pinned to 6.12.0)
+  ledcSetup(BACKLIGHT_LEDC_CH, 5000, 8);
+  ledcAttachPin(TFT_BL, BACKLIGHT_LEDC_CH);
+  ledcWrite(BACKLIGHT_LEDC_CH, 0); // start dark
 
   initColours(); // sets up sprite and colour constants
   clsNow();
 
-  ledcWrite(TFT_BL, BRIGHTNESS_DEFAULT);
+  ledcWrite(BACKLIGHT_LEDC_CH, BRIGHTNESS_DEFAULT);
   currentBrightness = BRIGHTNESS_DEFAULT;
 
   DBG_INFO("Display initialised %dx%d rotation=%d",
