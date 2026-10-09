@@ -73,6 +73,27 @@ Boot log (after the dialog was closed):
 [INFO] Free heap: 191412 bytes
 ```
 
+## Release check – Update from the live page (case 2)
+
+**Passed 09-10-2026** on the same board (MAC `b0:cb:d8:da:ae:8c`), live page
+<https://anthonyjclarke.github.io/CYD_PongClock/> serving v0.8.0 (tag run
+37898791330).
+
+1. The board was set to mode 1 (Pong) and brightness 150 through
+   `POST /api/config`. Those values survived a reset.
+2. It was flashed from PlatformIO as `0.8.0-dev.0` (app only, version edit not
+   committed). The mode stayed Pong across that version change, which
+   confirms the 0.8.0 change that stopped resetting it.
+3. Connect on the live page offered **Update CYD_PongClock** with no erase.
+4. After the Update: `/api/info` says `0.8.0`, and `/api/config` still has
+   mode 1 and brightness 150. The boot log shows `Running from app0`,
+   `Config loaded: mode=1 bright=150` and `WiFi connected`.
+
+An earlier Update (0.8.0-dev → 0.8.0) also worked and kept WiFi, but every
+setting was still at its default then, so it proved nothing about settings.
+Mode and brightness changed **by touch** are never saved to NVS – only web UI
+changes are – so they reset on any reboot, Update or not.
+
 Found in passing, not caused by this work: `initWiFi()` reads `WiFi.SSID()`
 before the WiFi driver starts, so it always sees no saved SSID and sets the
 portal timeout to 0. A board whose saved network is down then waits in the
@@ -86,6 +107,6 @@ Smoke-tested only. Run these on the next real work on this project, or before
 the next release, and tick them off with date and board MAC.
 
 - [ ] Case 1 – fresh install, erased, on each remaining board
-- [ ] Case 2 – Update on a provisioned board (settings kept)
+- [x] Case 2 – Update on a provisioned board (settings kept) – 09-10-2026, `b0:cb:d8:da:ae:8c`
 - [ ] Case 3 – Update from `app1` (only if the project has OTA) – N/A, no OTA
 - [ ] Case 4 – wrong board image, then reinstall (multi-env only) – N/A, one env
