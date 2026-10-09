@@ -317,7 +317,7 @@ Disabled by default (`LDR_ENABLED=0`). Enable via WebUI Config tab or by setting
 Typical boot sequence:
 
 ```
-[INFO] Improv: listening on Serial as PongClock-AE8C
+[INFO] Improv: listening on Serial as PongClock-XXXX
 [INFO] === CYD_PongClock v0.8.0 starting ===
 [INFO] Running from app0
 [INFO] Config loaded: mode=1 bright=180 ampm=0 tz=Australia/Sydney

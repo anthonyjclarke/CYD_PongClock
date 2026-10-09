@@ -45,7 +45,38 @@ reset the clock mode to Slide; 0.8.0 keeps it.
 
 ## Smoke test (RUNBOOK 5a)
 
-Not run yet.
+**Passed 09-10-2026** – CYD 2.8″ ESP32-2432S028R, ESP32-D0WD-V3 rev 3.1,
+MAC `b0:cb:d8:da:ae:8c`, macOS desktop Chrome, CI preview of `623f82f`
+(`0.8.0-dev`) served from localhost.
+
+| Step                                   | Result                              |
+|:---------------------------------------|:------------------------------------|
+| CI Firmware run 37897362433            | Green; `build` OK, publish skipped  |
+| `pio run -t erase`, then Install + erase | Flashed, splash shows `v0.8.0`    |
+| Configure WiFi (Improv)                | Joined WiFi, restarted              |
+| Connect again                          | "Connected to PongClock" 0.8.0-dev  |
+| Boot log after reset                   | `Running from app0`, WiFi, NTP OK   |
+| Web UI from PROGMEM                    | `/`, CSS, JS, PNG byte-exact; 404 OK |
+
+Boot log (after the dialog was closed):
+
+```text
+[INFO] Improv: listening on Serial as PongClock-CBB0
+[INFO] === CYD_PongClock v0.8.0-dev starting ===
+[INFO] Running from app0
+[INFO] Config loaded: mode=0 bright=180 ampm=0 tz=Australia/Sydney
+[INFO] WiFiManager portal timeout: 0 s (no saved credentials)
+*wm:Connecting to SAVED AP: …
+[INFO] WiFi connected: 192.168.1.95
+[INFO] Time synced: 18:18:08 09-Oct-2026  status=2  tz=AEDT offset=+1100
+[INFO] Web server started — http://192.168.1.95/
+[INFO] Free heap: 191412 bytes
+```
+
+Found in passing, not caused by this work: `initWiFi()` reads `WiFi.SSID()`
+before the WiFi driver starts, so it always sees no saved SSID and sets the
+portal timeout to 0. A board whose saved network is down then waits in the
+portal indefinitely instead of going offline after `WIFI_TIMEOUT_S`.
 
 ---
 
