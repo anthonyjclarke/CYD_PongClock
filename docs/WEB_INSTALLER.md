@@ -94,7 +94,7 @@ setting was still at its default then, so it proved nothing about settings.
 Mode and brightness changed **by touch** are never saved to NVS – only web UI
 changes are – so they reset on any reboot, Update or not.
 
-Found in passing, not caused by this work: `initWiFi()` reads `WiFi.SSID()`
+Found in passing and fixed in 0.9.0-dev (pre-existing, not caused by this work): `initWiFi()` reads `WiFi.SSID()`
 before the WiFi driver starts, so it always sees no saved SSID and sets the
 portal timeout to 0. A board whose saved network is down then waits in the
 portal indefinitely instead of going offline after `WIFI_TIMEOUT_S`.

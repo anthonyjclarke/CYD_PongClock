@@ -15,6 +15,9 @@ Format: `## [version] DD-MM-YYYY` with `### Added / Changed / Fixed` subsections
 
 ## [0.9.0] unreleased
 
+### Fixed
+- **WiFi portal timeout with saved credentials** — `initWiFi()` read `WiFi.SSID()`, which names only the network currently joined, so it always saw "no saved SSID" and set the WiFiManager portal timeout to 0. A board whose saved network was down waited in the portal forever instead of going offline after `WIFI_TIMEOUT_S`. It now starts the STA driver and asks `wm.getWiFiIsSaved()` (the saved STA config). Boot log on hardware: `portal timeout: 60 s (saved credentials)`.
+
 ---
 
 ## [0.8.0] 09-10-2026

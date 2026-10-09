@@ -168,7 +168,10 @@ static void showBootIpOnMatrix(const char* ip, uint16_t holdMs) {
 void initWiFi() {
   showStatus("Connecting WiFi...");
   WiFiManager wm;
-  bool hasSavedWifi = WiFi.SSID().length() > 0;
+  // WiFi.SSID() only names the network currently joined, so it is always ""
+  // here. Read the saved STA config instead; the driver must be started first.
+  WiFi.mode(WIFI_STA);
+  bool hasSavedWifi = wm.getWiFiIsSaved();
   wm.setConfigPortalTimeout(hasSavedWifi ? WIFI_TIMEOUT_S : 0);
   DBG_INFO("WiFiManager portal timeout: %d s (%s credentials)",
            hasSavedWifi ? WIFI_TIMEOUT_S : 0,
