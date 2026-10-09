@@ -1,13 +1,16 @@
 #pragma once
 // config.h — PongClock CYD user-tuneable constants
+#include <stdint.h>
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FIRMWARE_VERSION    "0.7.3"     // shown on splash screen — keep in sync with README badge
+#define FIRMWARE_VERSION    "0.8.0"     // splash, Improv, installer manifest — keep in sync with README badge
+#define PROJECT_NAME        "CYD_PongClock"  // frozen: Improv + installer manifest name — never change
 
 // ── Display ───────────────────────────────────────────────────────────────────
 #define SCREEN_ROTATION     1           // 1 = landscape (320×240)
 #define BRIGHTNESS_DEFAULT  180         // 0–255 backlight PWM
 #define BRIGHTNESS_STEPS    4           // number of brightness levels cycled on long-press
+constexpr uint8_t BACKLIGHT_LEDC_CH = 0;  // LEDC channel driving TFT_BL (GPIO 21)
 
 // ── Virtual LED Matrix ────────────────────────────────────────────────────────
 // Emulates 2× Sure 2416 panels side-by-side: 48 cols × 16 rows
@@ -47,8 +50,13 @@
 #define TOUCH_DEBOUNCE_MS   300         // ms between tap events
 
 // ── WiFi ──────────────────────────────────────────────────────────────────────
-#define WIFI_AP_NAME        "CYD-PongClock"
+#define AP_NAME             "CYD-PongClock"  // setup hotspot; also read by the web installer's index.json
+#define WIFI_AP_NAME        AP_NAME
 #define WIFI_TIMEOUT_S      60
+
+// ── Improv-Serial (web installer WiFi setup + Update detection) ───────────────
+#define IMPROV_SETUP_ENABLED 1
+#define IMPROV_DEVICE_PREFIX "PongClock"
 
 // ── NTP / Time ────────────────────────────────────────────────────────────────
 #define NTP_TIMEZONE        "Australia/Sydney"

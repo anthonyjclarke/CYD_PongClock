@@ -2,103 +2,87 @@
 
 ## Project
 
-A faithful port of Nick Hall's Pong Clock (v7.5) to the ESP32 CYD (Cheap Yellow Display). The original ran on an Arduino driving two Sure Electronics 2416 LED panels (combined 48×16 LEDs). This version emulates a 48×32 virtual LED matrix (double-height, two stacked panels) on the ILI9341 320×240 TFT — each virtual LED is a 6×6 rounded rectangle in amber, giving a retro LED panel aesthetic.
-
-Clock modes: **Slide** (digits slide in/out, date permanently below), **Pong** (game score = time, date permanently at bottom), **Digits** (large 10×14 font), **Word Clock** (time in words, date on third line), **Invaders** (space invaders scroll left↔right, time shown above — ported from Richard Shipman's PongClock v2.40, https://github.com/RichardShipman/PongClock). Mode switching via touchscreen. Time from NTP via WiFi. Animated splash screen on boot.
-
-HTTP web server (port 80, `src/web.cpp`): serves a two-tab SPA from LittleFS (`data/`) — **Clock tab** runs all five clock modes live in the browser as a pixel-exact JavaScript reimplementation on an HTML5 canvas inside a CSS CYD device mockup and its mode pills now switch the physical TFT immediately; **Config tab** exposes the remaining runtime settings (brightness, 12/24h, LED colours, timezone, NTP server, date interval, LDR). Full API: `GET /screenshot.bmp` streams the sprite buffer as a 24-bit BMP (288×192, RGB332→BGR888); `GET /api/info` returns JSON (firmware, mode, brightness, uptime, heap, IP); `GET/POST /api/config` reads and applies partial JSON config patches, persisting all changes to NVS; `POST /api/wifi-reset` erases WiFiManager credentials and restarts into AP mode. `handleNotFound()` serves any file present in LittleFS (MIME type auto-detected by extension), so any asset added to `data/` is automatically available with no handler registration. Server is skipped silently if WiFi is offline.
+Port of Nick Hall's Pong Clock (v7.5) to the CYD: a 48×32 virtual amber LED matrix
+(6 px per LED, 288×192 sprite) on the ILI9341, five touch-switched modes, NTP time,
+and a web UI with a JS replica of every mode plus a config tab. v0.8.0 adds the
+ESP Web Tools installer. Features, API and layout are in `README.md`.
 
 ## Hardware
 
-- Board: `ESP32-2432S028R (CYD)`
-- Display: ILI9341 · 240×320 (used landscape = 320×240) · SPI
-- Touch: XPT2046 · separate SPI CS (GPIO 33)
-- No PSRAM on standard CYD
+- Board: ESP32-2432S028R (CYD 2.8″), env `myclock_cyd`, no PSRAM.
+- Touch: own pins (CLK 25, MISO 39, MOSI 32, CS 33), but the **same VSPI peripheral
+  as the display** — see *Shared SPI bus* below.
+- Backlight GPIO 21 on LEDC channel `BACKLIGHT_LEDC_CH` (0).
 
-## Pin Assignments
+## Architecture decisions
 
-All standard CYD — see `~/.claude/rules/cyd-esp32.md`. No non-standard pins used.
+- Matrix sprite is **8-bit** (`setColorDepth(8)` before `createSprite()`): 16-bit at
+  288×192 needs 110 KB contiguous heap, which fails without PSRAM.
+- Web UI source is `data/`, but it is **not** a filesystem image: `tools/embed_web.py`
+  (pre-build) writes the gitignored `src/web_assets.h`; `web.cpp` serves it with
+  `send_P`. LittleFS is not mounted. New UI files need an entry in `WEB_FILES` and a
+  route in `initWeb()`.
+- Improv runs in a core-0 FreeRTOS task (`improvTask`, `main.cpp`), not from `loop()`:
+  modes block for up to ~10 s (`display_date()`), longer than ESP Web Tools' 1.5 s.
+- NVS namespace `"pclock"`, keys: `mode bright ampm onR onG onB offR offG offB tz ntp
+  dateInt ldr fwver`. `fwver` is logged only — never reset settings on a version
+  change, because every installer Update changes the version.
 
-Touch CS: GPIO 33 (separate VSPI bus from display).
+## Web installer and releases
 
-## Display Geometry
-
-| Parameter       | Value                              |
-|:----------------|:-----------------------------------|
-| Virtual LEDs    | 48 wide × 32 tall                  |
-| Pixel size      | 6px per LED                        |
-| Matrix px       | 288 × 192                          |
-| X offset        | 16px (centres 288px in 320px)      |
-| Y offset        | 24px (centres 192px in 240px)      |
-| Sprite depth    | 8-bit RGB332 (55KB; 16-bit is 110KB — too large without PSRAM) |
-| LED on colour   | Amber `color565(255, 140, 0)`      |
-| LED off colour  | Dark amber `color565(20, 8, 0)`    |
-
-## Architecture
-
-```
-data/                        ← LittleFS web assets (pio run -t uploadfs)
-  index.html                 — SPA: Clock tab (CYD mockup + canvas) + Config tab
-  clock.js                   — JS port of all 5 modes + fonts; async/await timing
-  style.css                  — CYD PCB mockup CSS; canvas 288×192 scaled 1.5× via CSS
-  pong-logo.png              — Atari Pong® logo bitmap; served as /pong-logo.png
-src/
-  main.cpp      — setup(), loop(), initDisplay/WiFi/Time/Web; loads NVS config at boot, shows matrix IP after splash, keeps first-run WiFi portal open indefinitely
-  display.cpp   — plot(), cls(), fade_down/up, setLedColours(), sprite management; ledColourChanged flag
-  clock.cpp     — all clock modes + font rendering + touch
-  web.cpp       — WebServer: generic LittleFS fallback (mimeFor()), /api/info, /api/config, /api/wifi-reset; config change summary log
-  config_nvs.cpp — NVS persistence (Preferences namespace "pclock")
-include/
-  config.h      — compile-time defaults (WEB_SERVER_PORT, colours, timing, etc.)
-  config_nvs.h  — RuntimeConfig struct + loadConfig()/saveConfig()/resetConfigToDefaults(); clockMode 0–4
-  display.h     — plot/cls/fade/setLedColours declarations, extern tft + sprite
-  clock.h       — clock mode declarations
-  web.h         — initWeb(), webLoop() declarations
-  fonts.h       — myfont(5×7), mybigfont(10×14), mytinyfont(3×5) in PROGMEM; invader_sprites[3][2][2][5] (Richard Shipman)
-  debug.h       — leveled debug macros
-  secrets.h     — WiFi credentials (gitignored)
-```
-
-Rendering uses a full-matrix `TFT_eSprite` (288×192px, 8-bit depth). `plot()` writes into the sprite; the sprite is pushed to screen at the end of each logical update via `pushSprite()`. This eliminates per-pixel SPI calls and prevents flicker on slide animations. TFT_eSPI auto-expands RGB332→RGB565 on push — visually transparent with only two amber tones in use.
-
-Runtime config is stored in NVS (Preferences namespace `"pclock"`) and loaded at boot before `initDisplay()` so brightness, colours, clock mode, and ampm are applied from the first frame. The `RuntimeConfig` struct (`config_nvs.h`) holds all settings; `saveConfig()` is called by the web handler on every POST to `/api/config`.
-
-**Two-step flash required:** `pio run -t upload` (firmware) + `pio run -t uploadfs` (LittleFS web assets). The `uploadfs` step is only needed when files in `data/` change.
-
-## Touch Input
-
-Screen split into left/right halves at `TOUCH_X_MID`. Single tap left half → previous mode. Single tap right half → next mode. Long press anywhere (≥600ms) → brightness cycle (4 steps). No physical buttons — CYD has none.
+- Release images come only from CI on a `v*` tag on `main`; never publish a local build.
+- Never put `firmware-merged.bin` in a manifest (it fills NVS with 0xFF).
+- `PROJECT_NAME` and `partitions_custom.csv` are frozen; renaming turns Update into Install.
+- Never put Improv back in `lib_deps` — `lib/ImprovWiFi` is the patched copy-in.
+- `improvTick()` must run at least every ~1 s (the task does it every 20 ms).
+- Platform pinned to `espressif32@6.12.0` (arduino-esp32 2.0.17): use the 2.0.x LEDC
+  channel API (`ledcSetup`/`ledcAttachPin`/`ledcWrite(ch, …)`), not 3.x `ledcAttach`.
+- Before the next release, clear *Tests owed* in `docs/WEB_INSTALLER.md` (RUNBOOK 5b).
 
 ## Known Issues / Quirks
 
-- `TFT_RST=-1` is correct — no reset pin on CYD.
-- Touch SPI must stay ≤ 2.5 MHz or reads are unreliable.
-- XPT2046 needs `tirqTouched() && touched()` guard before reading.
-- Slide animation: `slideanim()` renders pixel-row-by-row from PROGMEM font data directly — do not simplify to whole-char calls or the overlap during transition will corrupt.
-- `mybigfont` is 10 wide × 14 tall, stored as 20 bytes per glyph (2 rows of 8-bit column data per column pair). See `ht1632_putbigchar()` for decode logic.
-- Sprite must use `setColorDepth(8)` before `createSprite()` — 16-bit at 288×192 requires 110KB contiguous heap which the ESP32 cannot satisfy without PSRAM. 8-bit = 55KB, fits comfortably.
-- `myTZ.setLocation("Australia/Sydney")` makes an HTTP call to timezoneapi.io which reliably fails immediately after WiFi connect. Always set `NTP_POSIX_FALLBACK` and call `myTZ.setPosix()` as fallback — it is offline and DST-correct.
-- `web.cpp` must use `fs::File` (namespace-qualified) when opening LittleFS files — TFT_eSPI headers pull in a conflicting unqualified `File` symbol. Unqualified `File` will not compile.
-- Successful WiFi connect now shows the IP address on the LED matrix after the splash screen; this uses the existing matrix font path rather than TFT text rendering.
-- WiFiManager uses `setConfigPortalTimeout(0)` when no saved SSID exists, so first-run captive portal stays open until credentials are entered; reconnect attempts with saved credentials still use `WIFI_TIMEOUT_S`.
-- `ledColourChanged` (bool, `display.cpp`) is set by `setLedColours()` after a WebUI colour change. Each mode loop checks it on the next iteration, resets to `false`, then forces a full repaint of on-state pixels (Slide redraws all digits; Pong triggers restart; Digits/Word/Invaders invalidate their minute-cache sentinel). The off-state pixels are handled immediately by `setLedColours()` itself via `cls()`+`pushMatrix()`.
-- `pong-logo.png` in `data/` must be a trimmed black-on-white PNG (no white padding). CSS `filter: invert(1)` + `mix-blend-mode: screen` renders it white-on-transparent on the dark UI. White padding in the source PNG produces a visible dark rectangle after inversion — trim with `convert -trim` (ImageMagick) before adding to `data/`.
-- **Firmware version detection in NVS** — `loadConfig()` reads the `"fwver"` key from the `"pclock"` NVS namespace and compares it against `FIRMWARE_VERSION`. A mismatch means first boot after a new flash: `clockMode` is reset to `DEFAULT_CLOCK_MODE` and the new version tag is written. Power cycles leave the tag unchanged, so the last-used mode is always resumed. Consequence: bumping `FIRMWARE_VERSION` in `config.h` automatically resets mode on the next flash.
-- `debug.h` declares a `debugLevel` runtime variable and mentions a `/api/debug` web endpoint in its comment — that endpoint **does not exist** in `web.cpp`. Debug verbosity is compile-time only via the `DEBUG_LEVEL` build flag.
-- The version constant is named `FIRMWARE_VERSION` (not `FW_VERSION`) in `config.h` — all references in `.cpp` files use `FIRMWARE_VERSION`. Historical CHANGELOG entries that mention `FW_VERSION` reflect the pre-0.7.2 name before it was aligned with global rules.
-- **Arduino ESP32 3.x — LEDC API** — `ledcSetup(ch, freq, res)` + `ledcAttachPin(pin, ch)` were removed in core 3.0. Replaced with `ledcAttach(pin, freq, res)` + `ledcWrite(pin, duty)` where the GPIO pin replaces the channel number. All `ledcWrite` calls in `main.cpp` and `display.cpp` use `TFT_BL` (= 21) as the pin directly.
-- **Arduino ESP32 3.x — FS namespace** — TFT_eSPI defines `FS_NO_GLOBALS` before including `FS.h`, which keeps `FS` inside `namespace fs` only. `WebServer.h` (included via WiFiManager) uses bare `FS` and fails to compile without a `using fs::FS;` declaration. Added `using fs::FS;` in `main.cpp` (after `<TFT_eSPI.h>`) and `web.cpp` (after `"display.h"`).
-- **`_CFGLOG` macro in `web.cpp`** — the config-diff logging uses a local `#define _CFGLOG(...) …` macro. The short name `_L` conflicts with `_L 02` from the toolchain's `ctype.h`; renamed to `_CFGLOG` to avoid the redefinition warning.
+- Touch SPI ≤ 2.5 MHz; guard reads with `tirqTouched() && touched()`.
+- `slideanim()` renders row-by-row from PROGMEM font data — do not simplify to
+  whole-char calls or the overlap during the transition corrupts.
+- `mybigfont` is 10×14 stored as 20 bytes per glyph; see `ht1632_putbigchar()`.
+- `myTZ.setLocation()` calls timezoneapi.io and reliably fails right after WiFi
+  connects. Always fall back to `myTZ.setPosix(NTP_POSIX_FALLBACK)`.
+- TFT_eSPI defines `FS_NO_GLOBALS`; `WebServer.h` needs bare `FS`, hence
+  `using fs::FS;` after the TFT_eSPI include in `main.cpp` and `web.cpp`.
+- `ledColourChanged` (`display.cpp`) makes each mode force a full repaint of lit
+  pixels on its next pass after a WebUI colour change.
+- `pong-logo.png` must be a trimmed black-on-white PNG; the CSS inverts it, and white
+  padding shows as a dark box.
+- WiFiManager portal timeout is 0 (stays open) when no SSID is saved, else `WIFI_TIMEOUT_S`.
+- `debugLevel` in `debug.h` is compile-time only; there is no `/api/debug` endpoint.
+- `_CFGLOG` macro in `web.cpp`: `_L` clashes with `ctype.h`.
+- **Shared SPI bus — latent, not a live bug (checked 11-09-2026).** Display and
+  touch both run on VSPI: without `-DUSE_HSPI_PORT`, TFT_eSPI 2.5.43 creates
+  `SPIClass(VSPI)`, and `initTouch()` (`clock.cpp`) creates a second one on pins
+  25/32/39. `-DTOUCH_CS=33` also makes TFT_eSPI drive GPIO 33 during `tft.init()`.
+  - *Why it works:* TFT_eSPI always uses SPI transactions on the ESP32, nothing
+    draws or touches SPI from a second task (the Improv task uses Serial only),
+    and `tft.init()` runs before `initTouch()`. The bus
+    reads MISO from whichever `begin()` ran last, which is touch's GPIO 39.
+  - *It breaks if* anything reads back from the panel (`readPixel`, `readRect`,
+    `readcommand`), `tft.init()` is called again after `initTouch()`, or
+    TFT_eSPI's own `getTouch()` is used.
+  - *Fix:* add `-DUSE_HSPI_PORT` (MOSI 13 / MISO 12 / SCLK 14 / CS 15 are HSPI's
+    native pins), remove `-DTOUCH_CS=33`, give the touch CS its own name in
+    `config.h` (`clock.cpp` uses `TOUCH_CS` for the constructor and
+    `touchSPI.begin()`), then test touch on hardware.
+  - Checked against arduino-esp32 2.0.17 source, which is what the pinned
+    `espressif32@6.12.0` now uses.
+  - Found while porting CYD_AnimatedPixelClock, which now uses `USE_HSPI_PORT`.
+    There the shared bus was **not** the cause of dead touch — that was a faulty
+    board — so do not treat it as a known failure.
 
 ## Flashing Notes
 
-- Port: `/dev/cu.usbserial-*` (CP2102)
-- Upload speed: 230400 (921600 can fail on some cables)
-- First flash requires two steps: `pio run -t upload` then `pio run -t uploadfs`
-- After flash: check Serial for `Display initialised 320x240`, `WiFi connected`, `LittleFS mounted`, and `Web server started — http://…` then verify clock shows on screen within ~10 s of NTP sync.
-- Open `http://<device-ip>/` in a browser to confirm the WebUI loads and the live clock canvas is animating.
+- Port `/dev/cu.usbserial-*` (CP2102); upload speed 230400 (921600 fails on some cables).
+- Boot log to check: `Running from app0`, `Display initialised 320x240`,
+  `WiFi connected`, `Web server started — http://…`.
 
 ## Rules
 
-- Global rules: `~/.claude/CLAUDE.md`
-- Type rules: `~/.claude/rules/cyd-esp32.md`
+- Global rules: `~/.claude/CLAUDE.md` · Type rules: `~/.claude/rules/cyd-esp32.md`

@@ -7,12 +7,14 @@ using fs::FS;
 #include <SPI.h>
 #include <WiFiManager.h>
 #include <ezTime.h>
+#include <esp_ota_ops.h>
 #include "config.h"
 #include "config_nvs.h"
 #include "debug.h"
 #include "display.h"
 #include "clock.h"
 #include "web.h"
+#include "network/improv_setup.h"
 
 TFT_eSPI tft;
 
@@ -23,14 +25,15 @@ void initDisplay() {
   tft.init();
   tft.setRotation(SCREEN_ROTATION);
 
-  // Backlight via LEDC (Arduino ESP32 3.x API: ledcAttach replaces ledcSetup+ledcAttachPin)
-  ledcAttach(TFT_BL, 5000, 8);
-  ledcWrite(TFT_BL, 0); // start dark
+  // Backlight via LEDC (arduino-esp32 2.0.x channel API — platform pinned to 6.12.0)
+  ledcSetup(BACKLIGHT_LEDC_CH, 5000, 8);
+  ledcAttachPin(TFT_BL, BACKLIGHT_LEDC_CH);
+  ledcWrite(BACKLIGHT_LEDC_CH, 0); // start dark
 
   initColours(); // sets up sprite and colour constants
   clsNow();
 
-  ledcWrite(TFT_BL, BRIGHTNESS_DEFAULT);
+  ledcWrite(BACKLIGHT_LEDC_CH, BRIGHTNESS_DEFAULT);
   currentBrightness = BRIGHTNESS_DEFAULT;
 
   DBG_INFO("Display initialised %dx%d rotation=%d",
@@ -73,8 +76,10 @@ static void showSplash() {
   for (byte i = 0; i < 5; i++) { putChar(xC[i], 12, sC[i]); pushMatrix(); delay(60); }
 
   // ── Typewriter: version ─────────────────────────────────────────────────────
-  char verBuf[8];
-  snprintf(verBuf, sizeof(verBuf), "v%s", FIRMWARE_VERSION);
+  // Matrix fits 8 chars — drop any pre-release suffix ("0.8.0-dev" → "v0.8.0")
+  char verBuf[9];
+  snprintf(verBuf, sizeof(verBuf), "v%.*s",
+           (int)strcspn(FIRMWARE_VERSION, "-"), FIRMWARE_VERSION);
   byte vlen = (byte)strlen(verBuf);
   byte vx   = (byte)((LED_WIDTH - (vlen * 6 - 1)) / 2);
   delay(100);
@@ -207,10 +212,33 @@ void initTime() {
            myTZ.dateTime("O").c_str());  // e.g. +1000 or +1100
 }
 
+// ── Improv init ───────────────────────────────────────────────────────────────
+// ESP Web Tools must get an Improv reply within 1.5 s of Connect, but the clock
+// modes, splash, NTP wait and first-run WiFi portal all block for seconds at a
+// time. A small task on core 0 services Improv every 20 ms instead, so no
+// clock code has to tick it. Serial writes are mutex-protected in the core.
+#if IMPROV_SETUP_ENABLED
+static void improvTask(void*) {
+  for (;;) {
+    improvTick();  // restarts the device once new Improv credentials connect
+    vTaskDelay(pdMS_TO_TICKS(20));
+  }
+}
+#endif
+
+void initImprov() {
+  improvBegin();
+#if IMPROV_SETUP_ENABLED
+  xTaskCreatePinnedToCore(improvTask, "improv", 4096, nullptr, 1, nullptr, 0);
+#endif
+}
+
 // ── setup ─────────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
-  DBG_INFO("=== PongClock CYD starting ===");
+  initImprov();
+  DBG_INFO("=== %s v%s starting ===", PROJECT_NAME, FIRMWARE_VERSION);
+  DBG_INFO("Running from %s", esp_ota_get_running_partition()->label);
 
   // Load NVS config first — values used during display/clock init below
   loadConfig();

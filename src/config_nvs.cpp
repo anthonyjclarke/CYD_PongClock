@@ -13,8 +13,8 @@ void loadConfig() {
   prefs.begin(NVS_NS, true);  // read-only
 
   // Detect new firmware: compare stored version tag against running FIRMWARE_VERSION.
-  // A mismatch means this is the first boot after a flash — reset clock mode to
-  // DEFAULT_CLOCK_MODE. Power cycles leave the version tag unchanged → resume last mode.
+  // Logged only — every setting, clock mode included, survives a flash or a web
+  // installer Update (which always changes the version).
   char storedVer[16] = "";
   prefs.getString("fwver", storedVer, sizeof(storedVer));
   bool newFirmware = (strcmp(storedVer, FIRMWARE_VERSION) != 0);
@@ -41,15 +41,14 @@ void loadConfig() {
 
   prefs.end();
 
-  // New firmware: override clock mode and persist the new version tag + mode
+  // New firmware: persist the new version tag; settings are kept as loaded
   if (newFirmware) {
-    rtCfg.clockMode = DEFAULT_CLOCK_MODE;
     Preferences pw;
     pw.begin(NVS_NS, false);
     pw.putString("fwver", FIRMWARE_VERSION);
-    pw.putUChar ("mode",  DEFAULT_CLOCK_MODE);
     pw.end();
-    DBG_INFO("New firmware %s — clock mode reset to %d", FIRMWARE_VERSION, DEFAULT_CLOCK_MODE);
+    DBG_INFO("New firmware %s (was %s) — settings kept",
+             FIRMWARE_VERSION, storedVer[0] ? storedVer : "none");
   }
 
   // Clamp to valid range (guards against stale NVS after NUM_MODES reduction)

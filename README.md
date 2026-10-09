@@ -1,7 +1,7 @@
 # PongClock CYD
 
 <!-- Update version badge when FIRMWARE_VERSION changes in include/config.h -->
-![Version](https://img.shields.io/badge/version-0.7.3-blue.svg)
+![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-ESP32-green.svg)
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-6.x-orange.svg)
 ![Board](https://img.shields.io/badge/CYD-2.8%22-yellow.svg)
@@ -11,6 +11,33 @@
 A port of Nick Hall's classic **Pong Clock** to the **ESP32-2432S028R (Cheap Yellow Display)**. The original drove two Sure Electronics 2416 LED panels (48×16 combined). This version emulates a 48×32 virtual LED matrix on the ILI9341 320×240 TFT — each virtual LED is a 6×6 rounded rectangle in amber, giving a retro LED panel aesthetic.  Includes the Invader mode added by Richard Shipman.
 
 Original project: http://123led.wordpress.com/
+
+---
+
+## Install
+
+**[anthonyjclarke.github.io/CYD_PongClock][installer]** installs the latest
+release from the browser – no PlatformIO, no drivers to build. It needs desktop
+Chrome, Edge or Opera.
+
+1. Plug the CYD in with a USB data cable, click **Connect & install** and
+   choose its port.
+2. On a new board, say yes to erasing it. When flashing finishes, choose
+   **Configure WiFi** and pick your network. (Or skip it and join the
+   `CYD-PongClock` hotspot from your phone instead.)
+3. **Visit device** opens the clock's web page.
+
+A board already running this firmware is recognised and offered **Update**,
+which keeps its settings, clock mode and WiFi. Each [release][releases] also
+carries the images for flashing by hand. `*-firmware.bin` is the app alone
+(flash at `0x10000`). `*-merged.bin` is a clean install at `0x0` with esptool,
+and it **erases settings and WiFi**. Nothing else is needed – no API keys.
+
+A board on 0.7.x or older isn't recognised (it has no Improv), so the page
+offers **Install**. Answer **no** to erasing and it keeps its WiFi and settings.
+
+[installer]: https://anthonyjclarke.github.io/CYD_PongClock/
+[releases]: https://github.com/anthonyjclarke/CYD_PongClock/releases
 
 ---
 
@@ -114,9 +141,10 @@ When WiFi is connected a web server starts on port 80. Open `http://<device-ip>/
 
 | Endpoint            | Method    | Description                                          |
 |:--------------------|:----------|:-----------------------------------------------------|
-| `/`                 | GET       | Browser WebUI — live clock + config (served from LittleFS) |
+| `/`                 | GET       | Browser WebUI — live clock + config (from PROGMEM) |
 | `/clock.js`         | GET       | JavaScript clock engine                              |
 | `/style.css`        | GET       | WebUI stylesheet                                     |
+| `/pong-logo.png`    | GET       | Pong logo bitmap                                     |
 | `/screenshot.bmp`   | GET       | Current display as 24-bit BMP (288×192), download    |
 | `/api/info`         | GET       | JSON — firmware, mode, brightness, uptime, heap, IP  |
 | `/api/config`       | GET       | JSON — all runtime settings                          |
@@ -141,7 +169,7 @@ Example `/api/info` response:
 
 ```json
 {
-  "firmware": "0.7.3",
+  "firmware": "0.8.0",
   "mode": 1,
   "modeName": "Pong",
   "brightness": 180,
@@ -171,23 +199,27 @@ The server is offline-safe: `initWeb()` is a no-op if WiFi did not connect.
 # Build only
 pio run
 
-# Build and upload firmware
+# Build and upload firmware (web UI included)
 pio run --target upload
-
-# Upload web assets to LittleFS (required once, then only when data/ files change)
-pio run --target uploadfs
 
 # Serial monitor (115200 baud)
 pio device monitor --baud 115200
 ```
 
-> **Note:** Both `upload` and `uploadfs` are required on first flash. After that, `uploadfs` is only needed when files in `data/` change.
+The web UI lives in `data/`, but it is not a filesystem image: `tools/embed_web.py`
+runs before every build and embeds `data/` into PROGMEM as the gitignored
+`src/web_assets.h`. Edit `data/` and rebuild; there is no `uploadfs` step.
+
+The platform is pinned to `espressif32@6.12.0` (arduino-esp32 2.0.17).
+
+**Never publish a local build.** Release images come only from CI on a `v*`
+tag; `.github/workflows/firmware.yml` builds them with no `secrets.h`.
 
 ---
 
 ## First Boot
 
-1. Flash firmware (`pio run -t upload`) then web assets (`pio run -t uploadfs`).
+1. Install from the [web installer][installer], or flash with `pio run -t upload`.
 2. The screen shows **"Connecting WiFi..."** — if no saved credentials exist, a `CYD-PongClock` access point appears and stays available until WiFi is configured.
 3. Connect your phone to `CYD-PongClock` and enter your WiFi credentials in the captive portal.
 4. Device reboots, connects, and shows the IP address on the LED matrix after the splash screen.
@@ -285,14 +317,15 @@ Disabled by default (`LDR_ENABLED=0`). Enable via WebUI Config tab or by setting
 Typical boot sequence:
 
 ```
-[INFO] === PongClock CYD starting ===
+[INFO] Improv: listening on Serial as PongClock-XXXX
+[INFO] === CYD_PongClock v0.8.0 starting ===
+[INFO] Running from app0
 [INFO] Config loaded: mode=1 bright=180 ampm=0 tz=Australia/Sydney
 [INFO] Display initialised 320x240 rotation=1
 [INFO] Display colours initialised, sprite 288x192 depth=8 heap=198232
 [INFO] Touch initialised (VSPI CLK=25 MISO=39 MOSI=32 CS=33)
 [INFO] WiFi connected: 192.168.1.26
 [INFO] Time synced: 16:29:42 17-Mar-2026  status=2  tz=AEDT offset=+1100
-[INFO] LittleFS mounted — 48 KB used / 384 KB total
 [INFO] Web server started — http://192.168.1.26/
 [INFO] Free heap: 184320 bytes
 [INFO] Slide mode entry: 16:29:42  NTP status=2
@@ -311,7 +344,7 @@ CYD_PongClock/
 ├── README.md
 ├── CHANGELOG.md
 ├── CLAUDE.md
-├── data/                        ← LittleFS web assets (pio run -t uploadfs)
+├── data/                        ← web UI source, embedded into PROGMEM at build time
 │   ├── index.html               — SPA: Clock tab + Config tab
 │   ├── clock.js                 — JS clock engine (all 5 modes + fonts)
 │   ├── style.css                — CYD mockup + UI styling
@@ -329,7 +362,12 @@ CYD_PongClock/
 │   ├── display.cpp
 │   ├── clock.cpp
 │   ├── config_nvs.cpp           — NVS persistence via Preferences
-│   └── web.cpp                  — HTTP server + LittleFS serving
+│   ├── web.cpp                  — HTTP server, serves the PROGMEM web UI
+│   └── network/improv_setup.*   — Improv-Serial (web installer WiFi + Update)
+├── lib/ImprovWiFi/              — vendored Improv library (cyd-web-installer copy-in)
+├── tools/
+│   ├── embed_web.py             — pre-build: data/ → src/web_assets.h
+│   └── merge_bin.py             — post-build: flash_parts.json + merged image
 └── Images/
     ├── mode-slide.jpg            — device photos
     ├── mode-pong.jpg
